@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
+basic_sources = files(
+        'MurmurHash2.c',
+        'alloc-util.c',
+        'fd-util.c',
+        'fileio.c',
+        'fs-util.c',
+        'hash-funcs.c',
+        'hashmap.c',
+        'hexdecoct.c',
+        'hmac.c',
+        'inotify-util.c',
+        'io-util.c',
+        'log.c',
+        'memory-util.c',
+        'path-util.c',
+        'prioq.c',
+        'psi-util.c',
+        'random-util.c',
+        'ratelimit.c',
+        'signal-util.c',
+        'siphash24.c',
+        'string-table.c',
+        'string-util.c',
+        'sync-util.c',
+        'time-util.c',
+)
+
+libbasic_static = static_library(
+        'basic',
+        basic_sources,
+        fundamental_sources,
+        include_directories : basic_includes,
+        dependencies : [libm,
+                        librt,
+                        threads,
+                        userspace],
+        c_args : ['-fvisibility=default'],
+        build_by_default : false)

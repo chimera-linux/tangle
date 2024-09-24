@@ -1,0 +1,8 @@
+# -*- mode: meson -*-
+# SPDX-License-Identifier: LGPL-2.1-or-later
+
+option('debug-extra', type : 'array', choices : ['hashmap', 'siphash'], value : [],
+       description : 'enable extra debugging')
+
+option('pkgconfiglibdir', type : 'string', value : '',
+       description : 'directory for standard pkg-config files')
