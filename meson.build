@@ -180,6 +180,9 @@ has_wstringop_truncation = cc.has_argument('-Wstringop-truncation')
 conf.set('_GNU_SOURCE', 1)
 conf.set10('HAVE_WSTRINGOP_TRUNCATION', has_wstringop_truncation)
 
+conf.set('SIZEOF_PID_T', cc.sizeof('pid_t', prefix : '#include <sys/types.h>'))
+conf.set('SIZEOF_UID_T', cc.sizeof('uid_t', prefix : '#include <sys/types.h>'))
+conf.set('SIZEOF_GID_T', cc.sizeof('gid_t', prefix : '#include <sys/types.h>'))
 conf.set('SIZEOF_DEV_T', cc.sizeof('dev_t', prefix : '#include <sys/types.h>'))
 conf.set('SIZEOF_TIME_T', cc.sizeof('time_t', prefix : '#include <sys/time.h>'))
 
@@ -250,9 +253,38 @@ endforeach
 conf.set10('ENABLE_DEBUG_HASHMAP', enable_debug_hashmap)
 conf.set10('ENABLE_DEBUG_SIPHASH', enable_debug_siphash)
 
+libcap = dependency('libcap')
 threads = dependency('threads')
 librt = cc.find_library('rt')
 libm = cc.find_library('m')
+
+gperf = find_program('gperf')
+awk = find_program('awk')
+sh = find_program('sh')
+
+gperf_test_format = '''
+#include <string.h>
+const char * in_word_set(const char *, @0@);
+@1@
+'''
+gperf_snippet = run_command(sh, '-c', 'echo foo,bar | "$1" -L ANSI-C', '_', gperf,
+                            check : true)
+gperf_test = gperf_test_format.format('size_t', gperf_snippet.stdout())
+if cc.compiles(gperf_test)
+        gperf_len_type = 'size_t'
+else
+        gperf_test = gperf_test_format.format('unsigned', gperf_snippet.stdout())
+        if cc.compiles(gperf_test)
+                gperf_len_type = 'unsigned'
+        else
+                error('unable to determine gperf len type')
+        endif
+endif
+message('gperf len type is @0@'.format(gperf_len_type))
+conf.set('GPERF_LEN_TYPE', gperf_len_type,
+         description : 'The type of gperf "len" parameter')
+
+generate_gperfs = find_program('tools/generate-gperfs.py')
 
 config_h = configure_file(
         output : 'config.h',
@@ -285,6 +317,7 @@ includes = [lib_includes]
 subdir('src/fundamental')
 subdir('src/basic')
 subdir('src/lib')
+#subdir('src/busctl')
 
 install_headers(
         'src/include/_sd-common.h',
@@ -300,11 +333,7 @@ lib = shared_library(
                      # Make sure our library is never deleted from memory, so that our open logging fds don't leak on dlopen/dlclose cycles.
                      '-z', 'nodelete',
                      '-Wl,--version-script=' + lib_sym_path],
-        link_with : [libbasic_static],
         link_whole : [lib_static],
-        dependencies : [librt,
-                        threads,
-                        userspace],
         link_depends : lib_sym,
         install : true,
         install_dir : libdir)

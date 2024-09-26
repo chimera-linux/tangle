@@ -5,6 +5,9 @@
 
 #include "macro.h"
 
+int reset_all_signal_handlers(void);
+int reset_signal_mask(void);
+
 const char *signal_to_string(int i) _const_;
 int signal_from_string(const char *s) _pure_;
 

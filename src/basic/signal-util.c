@@ -10,6 +10,38 @@
 #include "string-table.h"
 #include "string-util.h"
 
+int reset_all_signal_handlers(void) {
+        static const struct sigaction sa = {
+                .sa_handler = SIG_DFL,
+                .sa_flags = SA_RESTART,
+        };
+        int ret = 0, r;
+
+        for (int sig = 1; sig < _NSIG; sig++) {
+
+                /* These two cannot be caught... */
+                if (IN_SET(sig, SIGKILL, SIGSTOP))
+                        continue;
+
+                /* On Linux the first two RT signals are reserved by glibc, and sigaction() will return
+                 * EINVAL for them. */
+                r = RET_NERRNO(sigaction(sig, &sa, NULL));
+                if (r != -EINVAL)
+                        RET_GATHER(ret, r);
+        }
+
+        return ret;
+}
+
+int reset_signal_mask(void) {
+        sigset_t ss;
+
+        if (sigemptyset(&ss) < 0)
+                return -errno;
+
+        return RET_NERRNO(sigprocmask(SIG_SETMASK, &ss, NULL));
+}
+
 static const char *const static_signal_table[] = {
         [SIGHUP]    = "HUP",
         [SIGINT]    = "INT",

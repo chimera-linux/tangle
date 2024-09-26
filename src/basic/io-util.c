@@ -10,6 +10,45 @@
 #include "string-util.h"
 #include "time-util.h"
 
+int flush_fd(int fd) {
+        int count = 0;
+
+        /* Read from the specified file descriptor, until POLLIN is not set anymore, throwing away everything
+         * read. Note that some file descriptors (notable IP sockets) will trigger POLLIN even when no data can be read
+         * (due to IP packet checksum mismatches), hence this function is only safe to be non-blocking if the fd used
+         * was set to non-blocking too. */
+
+        for (;;) {
+                char buf[LINE_MAX];
+                ssize_t l;
+                int r;
+
+                r = fd_wait_for_event(fd, POLLIN, 0);
+                if (r < 0) {
+                        if (r == -EINTR)
+                                continue;
+
+                        return r;
+                }
+                if (r == 0)
+                        return count;
+
+                l = read(fd, buf, sizeof(buf));
+                if (l < 0) {
+                        if (errno == EINTR)
+                                continue;
+
+                        if (errno == EAGAIN)
+                                return count;
+
+                        return -errno;
+                } else if (l == 0)
+                        return count;
+
+                count += (int) l;
+        }
+}
+
 ssize_t loop_read(int fd, void *buf, size_t nbytes, bool do_poll) {
         uint8_t *p = ASSERT_PTR(buf);
         ssize_t n = 0;

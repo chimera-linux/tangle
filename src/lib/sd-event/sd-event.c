@@ -26,10 +26,12 @@
 #include "memory-util.h"
 #include "origin-id.h"
 #include "path-util.h"
+#include "pidref.h"
 #include "prioq.h"
 #include "psi-util.h"
 #include "set.h"
 #include "signal-util.h"
+#include "socket-util.h"
 #include "string-table.h"
 #include "string-util.h"
 #include "time-util.h"
@@ -1709,71 +1711,6 @@ _public_ int sd_event_add_child(
         return 0;
 }
 
-static int _parse_pid(const char *s, pid_t* ret_pid) {
-        unsigned long ul = 0;
-        char *err = NULL;
-        pid_t pid;
-
-        assert(s);
-
-        ul = strtoul(s, &err, 10);
-        if (!err || *err)
-                return -ERANGE;
-
-        pid = (pid_t) ul;
-
-        if ((unsigned long) pid != ul)
-                return -ERANGE;
-
-        if (pid <= 0)
-                return -ERANGE;
-
-        if (ret_pid)
-                *ret_pid = pid;
-        return 0;
-}
-
-static int _pidfd_get_pid(int fd, pid_t *ret) {
-        char path[STRLEN("/proc/self/fdinfo/") + DECIMAL_STR_MAX(int)];
-        _cleanup_free_ char *fdinfo = NULL;
-        char *p;
-        int r;
-
-        /* Converts a pidfd into a pid. Well known errors:
-         *
-         *    -EBADF   → fd invalid
-         *    -ENOSYS  → /proc/ not mounted
-         *    -ENOTTY  → fd valid, but not a pidfd
-         *    -EREMOTE → fd valid, but pid is in another namespace we cannot translate to the local one
-         *    -ESRCH   → fd valid, but process is already reaped
-         */
-
-        if (fd < 0)
-                return -EBADF;
-
-        xsprintf(path, "/proc/self/fdinfo/%i", fd);
-
-        r = read_full_virtual_file(path, &fdinfo, NULL);
-        if (r == -ENOENT) /* if fdinfo doesn't exist we assume the process does not exist */
-                return -EBADF;
-        if (r < 0)
-                return r;
-
-        p = find_line_startswith(fdinfo, "Pid:");
-        if (!p)
-                return -ENOTTY; /* not a pidfd? */
-
-        p += strspn(p, WHITESPACE);
-        p[strcspn(p, WHITESPACE)] = 0;
-
-        if (streq(p, "0"))
-                return -EREMOTE; /* PID is in foreign PID namespace? */
-        if (streq(p, "-1"))
-                return -ESRCH;   /* refers to reaped process? */
-
-        return _parse_pid(p, ret);
-}
-
 _public_ int sd_event_add_child_pidfd(
                 sd_event *e,
                 sd_event_source **ret,
@@ -1810,7 +1747,7 @@ _public_ int sd_event_add_child_pidfd(
         if (r < 0)
                 return r;
 
-        r = _pidfd_get_pid(pidfd, &pid);
+        r = pidfd_get_pid(pidfd, &pid);
         if (r < 0)
                 return r;
 
@@ -2102,7 +2039,6 @@ _public_ int sd_event_add_memory_pressure(
                 return -errno;
 
         if (S_ISSOCK(st.st_mode)) {
-#if 0
                 fd = socket(AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC|SOCK_NONBLOCK, 0);
                 if (fd < 0)
                         return -errno;
@@ -2112,9 +2048,6 @@ _public_ int sd_event_add_memory_pressure(
                         return r;
 
                 events = EPOLLIN;
-#else
-                return -EOPNOTSUPP;
-#endif
         } else if (S_ISREG(st.st_mode) || S_ISFIFO(st.st_mode) || S_ISCHR(st.st_mode)) {
                 fd = fd_reopen(path_fd, (write_buffer_size > 0 ? O_RDWR : O_RDONLY) |O_CLOEXEC|O_NONBLOCK|O_NOCTTY);
                 if (fd < 0)

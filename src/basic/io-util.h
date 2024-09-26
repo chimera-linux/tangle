@@ -10,6 +10,8 @@
 #include "macro.h"
 #include "time-util.h"
 
+int flush_fd(int fd);
+
 ssize_t loop_read(int fd, void *buf, size_t nbytes, bool do_poll);
 int loop_read_exact(int fd, void *buf, size_t nbytes, bool do_poll);
 

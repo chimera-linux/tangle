@@ -9,10 +9,162 @@
 #include "alloc-util.h"
 #include "fd-util.h"
 #include "fileio.h"
+#include "hexdecoct.h"
 #include "macro.h"
 #include "memory-util.h"
 #include "path-util.h"
 #include "string-util.h"
+
+static int cescape_char(char c, char *buf) {
+        char *buf_old = buf;
+
+        /* Needs space for 4 characters in the buffer */
+
+        switch (c) {
+
+                case '\a':
+                        *(buf++) = '\\';
+                        *(buf++) = 'a';
+                        break;
+                case '\b':
+                        *(buf++) = '\\';
+                        *(buf++) = 'b';
+                        break;
+                case '\f':
+                        *(buf++) = '\\';
+                        *(buf++) = 'f';
+                        break;
+                case '\n':
+                        *(buf++) = '\\';
+                        *(buf++) = 'n';
+                        break;
+                case '\r':
+                        *(buf++) = '\\';
+                        *(buf++) = 'r';
+                        break;
+                case '\t':
+                        *(buf++) = '\\';
+                        *(buf++) = 't';
+                        break;
+                case '\v':
+                        *(buf++) = '\\';
+                        *(buf++) = 'v';
+                        break;
+                case '\\':
+                        *(buf++) = '\\';
+                        *(buf++) = '\\';
+                        break;
+                case '"':
+                        *(buf++) = '\\';
+                        *(buf++) = '"';
+                        break;
+                case '\'':
+                        *(buf++) = '\\';
+                        *(buf++) = '\'';
+                        break;
+
+                default:
+                        /* For special chars we prefer octal over
+                         * hexadecimal encoding, simply because glib's
+                         * g_strescape() does the same */
+                        if ((c < ' ') || (c >= 127)) {
+                                *(buf++) = '\\';
+                                *(buf++) = octchar((unsigned char) c >> 6);
+                                *(buf++) = octchar((unsigned char) c >> 3);
+                                *(buf++) = octchar((unsigned char) c);
+                        } else
+                                *(buf++) = c;
+                        break;
+        }
+
+        return buf - buf_old;
+}
+
+char *cellescape(char *buf, size_t len, const char *s) {
+        /* Escape and ellipsize s into buffer buf of size len. Only non-control ASCII
+         * characters are copied as they are, everything else is escaped. The result
+         * is different then if escaping and ellipsization was performed in two
+         * separate steps, because each sequence is either stored in full or skipped.
+         * 
+         * This function should be used for logging about strings which expected to
+         * be plain ASCII in a safe way.
+         *
+         * An ellipsis will be used if s is too long. It was always placed at the
+         * very end.
+         */
+
+        size_t i = 0, last_char_width[4] = {}, k = 0;
+
+        assert(buf);
+        assert(len > 0); /* at least a terminating NUL */
+        assert(s);
+
+        for (;;) {
+                char four[4];
+                int w;
+
+                if (*s == 0) /* terminating NUL detected? then we are done! */
+                        goto done;
+
+                w = cescape_char(*s, four);
+                if (i + w + 1 > len) /* This character doesn't fit into the buffer anymore? In that case let's
+                                      * ellipsize at the previous location */
+                        break;
+
+                /* OK, there was space, let's add this escaped character to the buffer */
+                memcpy(buf + i, four, w);
+                i += w;
+
+                /* And remember its width in the ring buffer */
+                last_char_width[k] = w;
+                k = (k + 1) % 4;
+
+                s++;
+        }
+
+        /* Ellipsation is necessary. This means we might need to truncate the string again to make space for 4
+         * characters ideally, but the buffer is shorter than that in the first place take what we can get */
+        for (size_t j = 0; j < ELEMENTSOF(last_char_width); j++) {
+
+                if (i + 4 <= len) /* nice, we reached our space goal */
+                        break;
+
+                k = k == 0 ? 3 : k - 1;
+                if (last_char_width[k] == 0) /* bummer, we reached the beginning of the strings */
+                        break;
+
+                assert(i >= last_char_width[k]);
+                i -= last_char_width[k];
+        }
+
+        if (i + 4 <= len) { /* yay, enough space */
+                buf[i++] = '.';
+                buf[i++] = '.';
+                buf[i++] = '.';
+        } else if (i + 3 <= len) { /* only space for ".." */
+                buf[i++] = '.';
+                buf[i++] = '.';
+        } else if (i + 2 <= len) /* only space for a single "." */
+                buf[i++] = '.';
+        else
+                assert(i + 1 <= len);
+
+done:
+        buf[i] = '\0';
+        return buf;
+}
+
+char* strshorten(char *s, size_t l) {
+        assert(s);
+
+        if (l >= SIZE_MAX-1) /* Would not change anything */
+                return s;
+
+        if (strnlen(s, l+1) > l)
+                s[l] = 0;
+
+        return s;
+}
 
 int free_and_strdup(char **p, const char *s) {
         char *t;
@@ -102,4 +254,169 @@ char *find_line_startswith(const char *haystack, const char *needle) {
                 }
 
         return p + strlen(needle);
+}
+
+int make_cstring(const char *s, size_t n, MakeCStringMode mode, char **ret) {
+        char *b;
+
+        assert(s || n == 0);
+        assert(mode >= 0);
+        assert(mode < _MAKE_CSTRING_MODE_MAX);
+
+        /* Converts a sized character buffer into a NUL-terminated NUL string, refusing if there are embedded
+         * NUL bytes. Whether to expect a trailing NUL byte can be specified via 'mode' */
+
+        if (n == 0) {
+                if (mode == MAKE_CSTRING_REQUIRE_TRAILING_NUL)
+                        return -EINVAL;
+
+                if (!ret)
+                        return 0;
+
+                b = new0(char, 1);
+        } else {
+                const char *nul;
+
+                nul = memchr(s, 0, n);
+                if (nul) {
+                        if (nul < s + n - 1 || /* embedded NUL? */
+                            mode == MAKE_CSTRING_REFUSE_TRAILING_NUL)
+                                return -EINVAL;
+
+                        n--;
+                } else if (mode == MAKE_CSTRING_REQUIRE_TRAILING_NUL)
+                        return -EINVAL;
+
+                if (!ret)
+                        return 0;
+
+                b = memdup_suffix0(s, n);
+        }
+        if (!b)
+                return -ENOMEM;
+
+        *ret = b;
+        return 0;
+}
+
+char *strjoin_real(const char *x, ...) {
+        va_list ap;
+        size_t l = 1;
+        char *r, *p;
+
+        va_start(ap, x);
+        for (const char *t = x; t; t = va_arg(ap, const char *)) {
+                size_t n;
+
+                n = strlen(t);
+                if (n > SIZE_MAX - l) {
+                        va_end(ap);
+                        return NULL;
+                }
+                l += n;
+        }
+        va_end(ap);
+
+        p = r = new(char, l);
+        if (!r)
+                return NULL;
+
+        va_start(ap, x);
+        for (const char *t = x; t; t = va_arg(ap, const char *))
+                p = stpcpy(p, t);
+        va_end(ap);
+
+        *p = 0;
+
+        return r;
+}
+
+bool string_has_cc(const char *p, const char *ok) {
+        assert(p);
+
+        /*
+         * Check if a string contains control characters. If 'ok' is
+         * non-NULL it may be a string containing additional CCs to be
+         * considered OK.
+         */
+
+        for (const char *t = p; *t; t++) {
+                if (ok && strchr(ok, *t))
+                        continue;
+
+                if (char_is_cc(*t))
+                        return true;
+        }
+
+        return false;
+}
+
+char *strextend_with_separator_internal(char **x, const char *separator, ...) {
+        size_t f, l, l_separator;
+        bool need_separator;
+        char *nr, *p;
+        va_list ap;
+
+        assert(x);
+
+        l = f = strlen_ptr(*x);
+
+        need_separator = !isempty(*x);
+        l_separator = strlen_ptr(separator);
+
+        va_start(ap, separator);
+        for (;;) {
+                const char *t;
+                size_t n;
+
+                t = va_arg(ap, const char *);
+                if (!t)
+                        break;
+
+                n = strlen(t);
+
+                if (need_separator)
+                        n += l_separator;
+
+                if (n >= SIZE_MAX - l) {
+                        va_end(ap);
+                        return NULL;
+                }
+
+                l += n;
+                need_separator = true;
+        }
+        va_end(ap);
+
+        need_separator = !isempty(*x);
+
+        nr = realloc(*x, GREEDY_ALLOC_ROUND_UP(l+1));
+        if (!nr)
+                return NULL;
+
+        *x = nr;
+        p = nr + f;
+
+        va_start(ap, separator);
+        for (;;) {
+                const char *t;
+
+                t = va_arg(ap, const char *);
+                if (!t)
+                        break;
+
+                if (need_separator && separator)
+                        p = stpcpy(p, separator);
+
+                p = stpcpy(p, t);
+
+                need_separator = true;
+        }
+        va_end(ap);
+
+        assert(p == nr + l);
+
+        *p = 0;
+
+        return p;
 }

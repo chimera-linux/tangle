@@ -21,6 +21,7 @@
 #include "path-util.h"
 #include "stdio-util.h"
 #include "string-util.h"
+#include "terminal-util.h"
 
 /* The maximum size of the file we'll read in one go in read_full_file() (64M). */
 #define READ_FULL_BYTES_MAX (64U * U64_MB - UINT64_C(1))
@@ -208,3 +209,241 @@ int read_virtual_file_at(
         return read_virtual_file_fd(fd, max_size, ret_contents, ret_size);
 }
 
+int fflush_and_check(FILE *f) {
+        assert(f);
+
+        errno = 0;
+        fflush(f);
+
+        if (ferror(f))
+                return errno_or_else(EIO);
+
+        return 0;
+}
+
+int fputs_with_separator(FILE *f, const char *s, const char *separator, bool *space) {
+        assert(s);
+        assert(space);
+
+        /* Outputs the specified string with fputs(), but optionally prefixes it with a separator.
+         * The *space parameter when specified shall initially point to a boolean variable initialized
+         * to false. It is set to true after the first invocation. This call is supposed to be use in loops,
+         * where a separator shall be inserted between each element, but not before the first one. */
+
+        if (!f)
+                f = stdout;
+
+        if (!separator)
+                separator = " ";
+
+        if (*space)
+                if (fputs(separator, f) < 0)
+                        return -EIO;
+
+        *space = true;
+
+        if (fputs(s, f) < 0)
+                return -EIO;
+
+        return 0;
+}
+
+FILE* open_memstream_unlocked(char **ptr, size_t *sizeloc) {
+        FILE *f = open_memstream(ptr, sizeloc);
+        if (!f)
+                return NULL;
+
+        (void) __fsetlocking(f, FSETLOCKING_BYCALLER);
+
+        return f;
+}
+
+static int safe_fgetc(FILE *f, char *ret) {
+        int k;
+
+        assert(f);
+
+        /* A safer version of plain fgetc(): let's propagate the error that happened while reading as such, and
+         * separate the EOF condition from the byte read, to avoid those confusion signed/unsigned issues fgetc()
+         * has. */
+
+        errno = 0;
+        k = fgetc(f);
+        if (k == EOF) {
+                if (ferror(f))
+                        return errno_or_else(EIO);
+
+                if (ret)
+                        *ret = 0;
+
+                return 0;
+        }
+
+        if (ret)
+                *ret = k;
+
+        return 1;
+}
+
+/* A bitmask of the EOL markers we know */
+typedef enum EndOfLineMarker {
+        EOL_NONE     = 0,
+        EOL_ZERO     = 1 << 0,  /* \0 (aka NUL) */
+        EOL_TEN      = 1 << 1,  /* \n (aka NL, aka LF)  */
+        EOL_THIRTEEN = 1 << 2,  /* \r (aka CR)  */
+} EndOfLineMarker;
+
+static EndOfLineMarker categorize_eol(char c, ReadLineFlags flags) {
+
+        if (!FLAGS_SET(flags, READ_LINE_ONLY_NUL)) {
+                if (c == '\n')
+                        return EOL_TEN;
+                if (c == '\r')
+                        return EOL_THIRTEEN;
+        }
+
+        if (c == '\0')
+                return EOL_ZERO;
+
+        return EOL_NONE;
+}
+
+DEFINE_TRIVIAL_CLEANUP_FUNC_FULL(FILE*, funlockfile, NULL);
+
+int read_line_full(FILE *f, size_t limit, ReadLineFlags flags, char **ret) {
+        _cleanup_free_ char *buffer = NULL;
+        size_t n = 0, count = 0;
+        int r;
+
+        assert(f);
+
+        /* Something like a bounded version of getline().
+         *
+         * Considers EOF, \n, \r and \0 end of line delimiters (or combinations of these), and does not include these
+         * delimiters in the string returned. Specifically, recognizes the following combinations of markers as line
+         * endings:
+         *
+         *     • \n        (UNIX)
+         *     • \r        (old MacOS)
+         *     • \0        (C strings)
+         *     • \n\0
+         *     • \r\0
+         *     • \r\n      (Windows)
+         *     • \n\r
+         *     • \r\n\0
+         *     • \n\r\0
+         *
+         * Returns the number of bytes read from the files (i.e. including delimiters — this hence usually differs from
+         * the number of characters in the returned string). When EOF is hit, 0 is returned.
+         *
+         * The input parameter limit is the maximum numbers of characters in the returned string, i.e. excluding
+         * delimiters. If the limit is hit we fail and return -ENOBUFS.
+         *
+         * If a line shall be skipped ret may be initialized as NULL. */
+
+        if (ret) {
+                if (!GREEDY_REALLOC(buffer, 1))
+                        return -ENOMEM;
+        }
+
+        {
+                _unused_ _cleanup_(funlockfilep) FILE *flocked = f;
+                EndOfLineMarker previous_eol = EOL_NONE;
+                flockfile(f);
+
+                for (;;) {
+                        EndOfLineMarker eol;
+                        char c;
+
+                        if (n >= limit)
+                                return -ENOBUFS;
+
+                        if (count >= INT_MAX) /* We couldn't return the counter anymore as "int", hence refuse this */
+                                return -ENOBUFS;
+
+                        r = safe_fgetc(f, &c);
+                        if (r < 0)
+                                return r;
+                        if (r == 0) /* EOF is definitely EOL */
+                                break;
+
+                        eol = categorize_eol(c, flags);
+
+                        if (FLAGS_SET(previous_eol, EOL_ZERO) ||
+                            (eol == EOL_NONE && previous_eol != EOL_NONE) ||
+                            (eol != EOL_NONE && (previous_eol & eol) != 0)) {
+                                /* Previous char was a NUL? This is not an EOL, but the previous char was? This type of
+                                 * EOL marker has been seen right before?  In either of these three cases we are
+                                 * done. But first, let's put this character back in the queue. (Note that we have to
+                                 * cast this to (unsigned char) here as ungetc() expects a positive 'int', and if we
+                                 * are on an architecture where 'char' equals 'signed char' we need to ensure we don't
+                                 * pass a negative value here. That said, to complicate things further ungetc() is
+                                 * actually happy with most negative characters and implicitly casts them back to
+                                 * positive ones as needed, except for \xff (aka -1, aka EOF), which it refuses. What a
+                                 * godawful API!) */
+                                assert_se(ungetc((unsigned char) c, f) != EOF);
+                                break;
+                        }
+
+                        count++;
+
+                        if (eol != EOL_NONE) {
+                                /* If we are on a tty, we can't shouldn't wait for more input, because that
+                                 * generally means waiting for the user, interactively. In the case of a TTY
+                                 * we expect only \n as the single EOL marker, so we are in the lucky
+                                 * position that there is no need to wait. We check this condition last, to
+                                 * avoid isatty() check if not necessary. */
+
+                                if ((flags & (READ_LINE_IS_A_TTY|READ_LINE_NOT_A_TTY)) == 0) {
+                                        int fd;
+
+                                        fd = fileno(f);
+                                        if (fd < 0) /* Maybe an fmemopen() stream? Handle this gracefully,
+                                                     * and don't call isatty() on an invalid fd */
+                                                flags |= READ_LINE_NOT_A_TTY;
+                                        else
+                                                flags |= isatty_safe(fd) ? READ_LINE_IS_A_TTY : READ_LINE_NOT_A_TTY;
+                                }
+                                if (FLAGS_SET(flags, READ_LINE_IS_A_TTY))
+                                        break;
+                        }
+
+                        if (eol != EOL_NONE) {
+                                previous_eol |= eol;
+                                continue;
+                        }
+
+                        if (ret) {
+                                if (!GREEDY_REALLOC(buffer, n + 2))
+                                        return -ENOMEM;
+
+                                buffer[n] = c;
+                        }
+
+                        n++;
+                }
+        }
+
+        if (ret) {
+                buffer[n] = 0;
+
+                *ret = TAKE_PTR(buffer);
+        }
+
+        return (int) count;
+}
+
+int read_one_line_file(const char *filename, char **ret) {
+        _cleanup_fclose_ FILE *f = NULL;
+
+        assert(filename);
+        assert(ret);
+
+        f = fopen(filename, "re");
+        if (!f)
+                return -errno;
+
+        (void) __fsetlocking(f, FSETLOCKING_BYCALLER);
+
+        return read_line(f, LONG_LINE_MAX, ret);
+}

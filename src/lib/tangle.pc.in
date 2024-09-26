@@ -13,7 +13,7 @@ libdir={{LIBDIR}}
 includedir={{INCLUDE_DIR}}
 
 Name: tangle
-Description: standalone sd-event
+Description: standalone systemd libraries
 URL: {{PROJECT_URL}}
 Version: {{PROJECT_VERSION}}
 Libs: -L${libdir} -ltangle

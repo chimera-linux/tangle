@@ -34,7 +34,7 @@ int safe_getcwd(char **ret) {
         return 0;
 }
 
-static char* path_startswith(const char *path, const char *prefix) {
+char* path_startswith(const char *path, const char *prefix) {
         assert(path);
         assert(prefix);
 
@@ -450,3 +450,117 @@ bool path_is_normalized(const char *p) {
         return true;
 }
 
+bool dot_or_dot_dot(const char *path) {
+        if (!path)
+                return false;
+        if (path[0] != '.')
+                return false;
+        if (path[1] == 0)
+                return true;
+        if (path[1] != '.')
+                return false;
+
+        return path[2] == 0;
+}
+
+int path_make_absolute_cwd(const char *p, char **ret) {
+        char *c;
+        int r;
+
+        assert(p);
+        assert(ret);
+
+        /* Similar to path_make_absolute(), but prefixes with the
+         * current working directory. */
+
+        if (path_is_absolute(p))
+                c = strdup(p);
+        else {
+                _cleanup_free_ char *cwd = NULL;
+
+                r = safe_getcwd(&cwd);
+                if (r < 0)
+                        return r;
+
+                c = path_join(cwd, p);
+        }
+        if (!c)
+                return -ENOMEM;
+
+        *ret = c;
+        return 0;
+}
+
+char* path_extend_internal(char **x, ...) {
+        size_t sz, old_sz;
+        char *q, *nx;
+        const char *p;
+        va_list ap;
+        bool slash;
+
+        /* Joins all listed strings until the sentinel and places a "/" between them unless the strings
+         * end/begin already with one so that it is unnecessary. Note that slashes which are already
+         * duplicate won't be removed. The string returned is hence always equal to or longer than the sum of
+         * the lengths of the individual strings.
+         *
+         * The first argument may be an already allocated string that is extended via realloc() if
+         * non-NULL. path_extend() and path_join() are macro wrappers around this function, making use of the
+         * first parameter to distinguish the two operations.
+         *
+         * Note: any listed empty string is simply skipped. This can be useful for concatenating strings of
+         * which some are optional.
+         *
+         * Examples:
+         *
+         * path_join("foo", "bar") → "foo/bar"
+         * path_join("foo/", "bar") → "foo/bar"
+         * path_join("", "foo", "", "bar", "") → "foo/bar" */
+
+        sz = old_sz = x ? strlen_ptr(*x) : 0;
+        va_start(ap, x);
+        while ((p = va_arg(ap, char*)) != POINTER_MAX) {
+                size_t add;
+
+                if (isempty(p))
+                        continue;
+
+                add = 1 + strlen(p);
+                if (sz > SIZE_MAX - add) { /* overflow check */
+                        va_end(ap);
+                        return NULL;
+                }
+
+                sz += add;
+        }
+        va_end(ap);
+
+        nx = realloc(x ? *x : NULL, GREEDY_ALLOC_ROUND_UP(sz+1));
+        if (!nx)
+                return NULL;
+        if (x)
+                *x = nx;
+
+        if (old_sz > 0)
+                slash = nx[old_sz-1] == '/';
+        else {
+                nx[old_sz] = 0;
+                slash = true; /* no need to generate a slash anymore */
+        }
+
+        q = nx + old_sz;
+
+        va_start(ap, x);
+        while ((p = va_arg(ap, char*)) != POINTER_MAX) {
+                if (isempty(p))
+                        continue;
+
+                if (!slash && p[0] != '/')
+                        *(q++) = '/';
+
+                q = stpcpy(q, p);
+                slash = endswith(p, "/");
+        }
+        va_end(ap);
+
+        return nx;
+}
