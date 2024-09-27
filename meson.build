@@ -321,6 +321,9 @@ subdir('src/lib')
 
 install_headers(
         'src/include/_sd-common.h',
+        'src/include/sd-bus.h',
+        'src/include/sd-bus-protocol.h',
+        'src/include/sd-bus-vtable.h',
         'src/include/sd-event.h',
         subdir: meson.project_name(),
 )
