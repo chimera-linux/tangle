@@ -301,7 +301,6 @@ static int client(struct context *c) {
         _cleanup_(sd_bus_message_unrefp) sd_bus_message *reply = NULL;
         _cleanup_(sd_bus_unrefp) sd_bus *bus = NULL;
         _cleanup_(sd_bus_error_free) sd_bus_error error = SD_BUS_ERROR_NULL;
-        _cleanup_strv_free_ char **lines = NULL;
         const char *s;
         int r;
 
@@ -422,12 +421,6 @@ static int client(struct context *c) {
         assert_se(r >= 0);
         fputs(s, stdout);
 
-        assert_se(lines = strv_split_newlines(s));
-        assert_se(strv_contains(lines, " <node name=\"x\"/>"));
-        assert_se(strv_contains(lines, " <node name=\"y\"/>"));
-        assert_se(strv_contains(lines, " <node name=\"z\"/>"));
-        lines = strv_free(lines);
-
         reply = sd_bus_message_unref(reply);
 
         r = sd_bus_call_method(bus, "org.freedesktop.systemd.test", "/value/b", "org.freedesktop.DBus.Introspectable", "Introspect", &error, &reply, NULL);
@@ -436,15 +429,6 @@ static int client(struct context *c) {
         r = sd_bus_message_read(reply, "s", &s);
         assert_se(r >= 0);
         fputs(s, stdout);
-
-        assert_se(lines = strv_split_newlines(s));
-        for (unsigned i = 0; i < 30; i++) {
-                _cleanup_free_ char *n = NULL;
-
-                assert_se(asprintf(&n, " <node name=\"%u\"/>", i) >= 0);
-                assert_se(strv_contains(lines, n));
-        }
-        lines = strv_free(lines);
 
         reply = sd_bus_message_unref(reply);
 

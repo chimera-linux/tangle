@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <stdlib.h>
@@ -154,7 +155,7 @@ static int server(sd_bus *_bus) {
                         if (!lowercase)
                                 return log_oom();
 
-                        ascii_strlower(lowercase);
+                        for (char *p = lowercase; *p; ++p) *p = tolower(*p);
 
                         r = sd_bus_reply_method_return(m, "s", lowercase);
                         if (r < 0)

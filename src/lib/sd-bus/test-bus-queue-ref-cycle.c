@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 #include "sd-bus.h"
 
-#include "main-func.h"
+#include "macro.h"
 #include "tests.h"
 
 static int test_ref_unref(void) {
@@ -41,16 +41,14 @@ static int test_ref_unref(void) {
         return 0;
 }
 
-static int run(int argc, char *argv[]) {
+int main(void) {
         int r;
 
         test_setup_logging(LOG_INFO);
 
         r = test_ref_unref();
         if (r < 0)
-                return r;
+                return 1;
 
         return 0;
 }
-
-DEFINE_MAIN_FUNCTION(run);

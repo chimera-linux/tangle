@@ -361,4 +361,6 @@ TEST(introspect_on_path) {
         assert_se(strv_equal(l, expected));
 }
 
-DEFINE_TEST_MAIN(LOG_DEBUG);
+int main(void) {
+        introspect_on_path();
+}

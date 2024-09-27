@@ -507,10 +507,6 @@ static int find_nodes(sd_bus *bus, const char *service, const char *path, Set *p
         return parse_xml_introspect(path, xml, &ops, paths);
 }
 
-static int str_compare(const void *a, const void *b) {
-        return strcmp(*((const char **)a), *((const char **)b));
-}
-
 static int tree_one(sd_bus *bus, const char *service) {
         _cleanup_set_free_ Set *paths = NULL, *done = NULL, *failed = NULL;
         _cleanup_free_ char **l = NULL;
@@ -546,7 +542,7 @@ static int tree_one(sd_bus *bus, const char *service) {
         if (!l)
                 return log_oom();
 
-        qsort(l, strv_length(l), sizeof(char *), str_compare);
+        strv_sort(l);
         print_tree(l);
 
         fflush(stdout);

@@ -94,6 +94,7 @@ static inline char *ellipsize(const char *s, size_t length, unsigned percent) {
 }
 
 char* cescape(const char *s);
+char* cescape_length(const char *s, size_t n);
 char *cellescape(char *buf, size_t len, const char *s);
 
 int free_and_strdup(char **p, const char *s);

@@ -20,15 +20,10 @@ static void test_one_address(sd_bus *b,
                 assert_se(streq_ptr(b->address, expected));
 }
 
-TEST(bus_set_address_system_remote) {
+int main(void) {
         _cleanup_(sd_bus_unrefp) sd_bus *b = NULL;
 
         assert_se(sd_bus_new(&b) >= 0);
-        if (!strv_isempty(saved_argv + 1)) {
-                STRV_FOREACH(a, saved_argv + 1)
-                        test_one_address(b, *a, 0, NULL);
-                return;
-        };
 
         test_one_address(b, "host",
                          0, "unixexec:path=ssh,argv1=-xT,argv2=--,argv3=host,argv4=systemd-stdio-bridge");
@@ -57,5 +52,3 @@ TEST(bus_set_address_system_remote) {
         test_one_address(b, "user@@",
                          -EINVAL, NULL);
 }
-
-DEFINE_TEST_MAIN(LOG_INFO);

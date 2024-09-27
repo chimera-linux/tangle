@@ -42,6 +42,43 @@ int reset_signal_mask(void) {
         return RET_NERRNO(sigprocmask(SIG_SETMASK, &ss, NULL));
 }
 
+static int sigset_add_many_ap(sigset_t *ss, va_list ap) {
+        int sig, r = 0;
+
+        assert(ss);
+
+        while ((sig = va_arg(ap, int)) >= 0) {
+
+                if (sig == 0)
+                        continue;
+
+                if (sigaddset(ss, sig) < 0) {
+                        if (r >= 0)
+                                r = -errno;
+                }
+        }
+
+        return r;
+}
+
+int sigprocmask_many_internal(int how, sigset_t *old, ...) {
+        va_list ap;
+        sigset_t ss;
+        int r;
+
+        if (sigemptyset(&ss) < 0)
+                return -errno;
+
+        va_start(ap, old);
+        r = sigset_add_many_ap(&ss, ap);
+        va_end(ap);
+
+        if (r < 0)
+                return r;
+
+        return RET_NERRNO(sigprocmask(how, &ss, old));
+}
+
 static const char *const static_signal_table[] = {
         [SIGHUP]    = "HUP",
         [SIGINT]    = "INT",

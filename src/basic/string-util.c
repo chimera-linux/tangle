@@ -80,7 +80,7 @@ static int cescape_char(char c, char *buf) {
         return buf - buf_old;
 }
 
-static char* cescape_length(const char *s, size_t n) {
+char* cescape_length(const char *s, size_t n) {
         const char *f;
         char *r, *t;
 

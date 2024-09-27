@@ -288,6 +288,8 @@ conf.set('GPERF_LEN_TYPE', gperf_len_type,
 
 generate_gperfs = find_program('tools/generate-gperfs.py')
 
+tests = []
+
 config_h = configure_file(
         output : 'config.h',
         configuration : conf)
@@ -313,7 +315,8 @@ basic_includes = include_directories(
 lib_includes = [basic_includes, include_directories(
         'src/lib/sd-bus',
         'src/lib/sd-event',
-        'src/lib/sd-id128')]
+        'src/lib/sd-id128',
+        'src/test')]
 
 includes = [lib_includes]
 
@@ -322,6 +325,7 @@ subdir('src/fundamental')
 subdir('src/basic')
 subdir('src/lib')
 subdir('src/busctl')
+subdir('src/test')
 
 install_headers(
         'src/include/_sd-common.h',
@@ -344,3 +348,18 @@ lib = shared_library(
         link_depends : lib_sym,
         install : true,
         install_dir : libdir)
+
+foreach sources : tests
+        timeout = 30
+
+        name = sources[0].split('/')[-1].split('.')[0]
+
+        exe = executable(
+                name,
+                sources,
+                include_directories : lib_includes,
+                link_with : [libtest, lib_static],
+                dependencies : [userspace],
+                install : false)
+        test(name, exe, timeout : timeout)
+endforeach

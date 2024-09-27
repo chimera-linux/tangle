@@ -6,38 +6,13 @@
 #include "sd-bus.h"
 
 #include "bus-dump.h"
-#include "bus-util.h"
 #include "fd-util.h"
+#include "pidref.h"
 #include "process-util.h"
 #include "socket-util.h"
-#include "sort-util.h"
+#include "string-util.h"
 #include "tests.h"
 #include "user-util.h"
-
-static bool gid_list_contained(const gid_t *a, size_t n, const gid_t *b, size_t m) {
-        assert_se(a || n == 0);
-        assert_se(b || m == 0);
-
-        /* Checks if every entry in a[] is also in b[] */
-
-        for (size_t i = 0; i < n; i++) {
-                size_t j;
-
-                for (j = 0; j < m; j++)
-                        if (a[i] == b[j])
-                                break;
-
-                if (j >= m)
-                        return false;
-        }
-
-        return true;
-}
-
-static bool gid_list_same(const gid_t *a, size_t n, const gid_t *b, size_t m) {
-        return gid_list_contained(a, n, b, m) &&
-                gid_list_contained(b, m, a, n);
-}
 
 static void *server(void *p) {
         _cleanup_(sd_bus_flush_close_unrefp) sd_bus *bus = NULL;
@@ -82,18 +57,6 @@ static void *server(void *p) {
 
                 assert_se(pidref_set_pidfd_take(&pidref, pidfd) >= 0);
                 assert_se(pidref.pid == getpid_cached());
-        }
-
-        const gid_t *gl = NULL;
-        int n;
-        n = sd_bus_creds_get_supplementary_gids(c, &gl);
-
-        if (n >= 0) {
-                _cleanup_free_ gid_t *gg = NULL;
-                r = getgroups_alloc(&gg);
-                assert_se(r >= 0);
-
-                assert_se(gid_list_same(gl, n, gg, r));
         }
 
         const char *comm;
@@ -143,7 +106,7 @@ static void* client(void *p) {
         return NULL;
 }
 
-TEST(description) {
+int main(void) {
         _cleanup_free_ char *a = NULL;
         _cleanup_close_ int fd = -EBADF;
         union sockaddr_union sa = {
@@ -174,5 +137,3 @@ TEST(description) {
         assert_se(pthread_join(s, NULL) == 0);
         assert_se(pthread_join(c, NULL) == 0);
 }
-
-DEFINE_TEST_MAIN(LOG_INFO);

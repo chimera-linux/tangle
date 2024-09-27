@@ -200,6 +200,7 @@ char* endswith_strv(const char *s, char * const *l);
         _FOREACH_STRING(UNIQ, x, y, ##__VA_ARGS__)
 
 char** strv_reverse(char **l);
+char **strv_sort(char **l);
 
 bool strv_fnmatch_full(char* const* patterns, const char *s, int flags, size_t *ret_matched_pos);
 static inline bool strv_fnmatch(char* const* patterns, const char *s) {

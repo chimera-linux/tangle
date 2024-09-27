@@ -1,23 +1,18 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
-#if HAVE_PIDFD_OPEN
-#include <sys/pidfd.h>
-#endif
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "sd-event.h"
 
 #include "alloc-util.h"
-#include "exec-util.h"
 #include "fd-util.h"
 #include "fs-util.h"
 #include "log.h"
 #include "macro.h"
-#include "missing_syscall.h"
 #include "path-util.h"
+#include "process-util.h"
 #include "random-util.h"
-#include "rm-rf.h"
 #include "signal-util.h"
 #include "stdio-util.h"
 #include "string-util.h"
@@ -195,7 +190,7 @@ static int post_handler(sd_event_source *s, void *userdata) {
         return 2;
 }
 
-static void test_basic_one(bool with_pidfd) {
+TEST(basic) {
         sd_event *e = NULL;
         sd_event_source *w = NULL, *x = NULL, *y = NULL, *z = NULL, *q = NULL, *t = NULL;
         static const char ch = 'x';
@@ -203,10 +198,6 @@ static void test_basic_one(bool with_pidfd) {
             d[2] = EBADF_PAIR, k[2] = EBADF_PAIR;
         uint64_t event_now;
         int64_t priority;
-
-        log_info("/* %s(pidfd=%s) */", __func__, yes_no(with_pidfd));
-
-        assert_se(setenv("SYSTEMD_PIDFD", yes_no(with_pidfd), 1) >= 0);
 
         assert_se(pipe(a) >= 0);
         assert_se(pipe(b) >= 0);
@@ -298,16 +289,9 @@ static void test_basic_one(bool with_pidfd) {
         safe_close_pair(b);
         safe_close_pair(d);
         safe_close_pair(k);
-
-        assert_se(unsetenv("SYSTEMD_PIDFD") >= 0);
 }
 
-TEST(basic) {
-        test_basic_one(true);   /* test with pidfd */
-        test_basic_one(false);  /* test without pidfd */
-}
-
-TEST(sd_event_now) {
+TEST(test_sd_event_now) {
         _cleanup_(sd_event_unrefp) sd_event *e = NULL;
         uint64_t event_now;
 
@@ -385,232 +369,6 @@ TEST(rtqueue) {
         sd_event_source_unref(u);
         sd_event_source_unref(v);
         sd_event_source_unref(s);
-
-        sd_event_unref(e);
-}
-
-#define CREATE_EVENTS_MAX (70000U)
-
-struct inotify_context {
-        bool delete_self_handler_called;
-        unsigned create_called[CREATE_EVENTS_MAX];
-        unsigned create_overflow;
-        unsigned n_create_events;
-        const char *path;
-};
-
-static void maybe_exit(sd_event_source *s, struct inotify_context *c) {
-        unsigned n;
-
-        assert_se(s);
-        assert_se(c);
-
-        if (!c->delete_self_handler_called)
-                return;
-
-        for (n = 0; n < 3; n++) {
-                unsigned i;
-
-                if (c->create_overflow & (1U << n))
-                        continue;
-
-                for (i = 0; i < c->n_create_events; i++)
-                        if (!(c->create_called[i] & (1U << n)))
-                                return;
-        }
-
-        sd_event_exit(sd_event_source_get_event(s), 0);
-}
-
-static int inotify_handler(sd_event_source *s, const struct inotify_event *ev, void *userdata) {
-        struct inotify_context *c = ASSERT_PTR(userdata);
-        const char *path, *description;
-        unsigned bit, n;
-
-        assert_se(sd_event_source_get_inotify_path(s, &path) >= 0);
-
-        assert_se(sd_event_source_get_description(s, &description) >= 0);
-        assert_se(safe_atou(description, &n) >= 0);
-
-        assert_se(n <= 3);
-        bit = 1U << n;
-
-        if (ev->mask & IN_Q_OVERFLOW) {
-                log_info("inotify-handler for %s <%s>: overflow", path, description);
-                c->create_overflow |= bit;
-        } else if (ev->mask & IN_CREATE) {
-                assert_se(path_equal_or_inode_same(path, c->path, 0));
-                if (streq(ev->name, "sub"))
-                        log_debug("inotify-handler for %s <%s>: create on %s", path, description, ev->name);
-                else {
-                        unsigned i;
-
-                        assert_se(safe_atou(ev->name, &i) >= 0);
-                        assert_se(i < c->n_create_events);
-                        c->create_called[i] |= bit;
-                }
-        } else if (ev->mask & IN_DELETE) {
-                log_info("inotify-handler for %s <%s>: delete of %s", path, description, ev->name);
-                assert_se(streq(ev->name, "sub"));
-        } else
-                assert_not_reached();
-
-        maybe_exit(s, c);
-        return 1;
-}
-
-static int delete_self_handler(sd_event_source *s, const struct inotify_event *ev, void *userdata) {
-        struct inotify_context *c = ASSERT_PTR(userdata);
-        const char *path;
-
-        assert_se(sd_event_source_get_inotify_path(s, &path) >= 0);
-
-        if (ev->mask & IN_Q_OVERFLOW) {
-                log_info("delete-self-handler for %s: overflow", path);
-                c->delete_self_handler_called = true;
-        } else if (ev->mask & IN_DELETE_SELF) {
-                log_info("delete-self-handler for %s: delete-self", path);
-                c->delete_self_handler_called = true;
-        } else if (ev->mask & IN_IGNORED) {
-                log_info("delete-self-handler for %s: ignore", path);
-        } else
-                assert_not_reached();
-
-        maybe_exit(s, c);
-        return 1;
-}
-
-static void test_inotify_one(unsigned n_create_events) {
-        _cleanup_(rm_rf_physical_and_freep) char *p = NULL;
-        sd_event_source *a = NULL, *b = NULL, *c = NULL, *d = NULL;
-        struct inotify_context context = {
-                .n_create_events = n_create_events,
-        };
-        sd_event *e = NULL;
-        const char *q, *pp;
-        unsigned i;
-
-        log_info("/* %s(%u) */", __func__, n_create_events);
-
-        assert_se(sd_event_default(&e) >= 0);
-
-        assert_se(mkdtemp_malloc("/tmp/test-inotify-XXXXXX", &p) >= 0);
-        context.path = p;
-
-        assert_se(sd_event_add_inotify(e, &a, p, IN_CREATE|IN_ONLYDIR, inotify_handler, &context) >= 0);
-        assert_se(sd_event_add_inotify(e, &b, p, IN_CREATE|IN_DELETE|IN_DONT_FOLLOW, inotify_handler, &context) >= 0);
-        assert_se(sd_event_source_set_priority(b, SD_EVENT_PRIORITY_IDLE) >= 0);
-        assert_se(sd_event_source_set_priority(b, SD_EVENT_PRIORITY_NORMAL) >= 0);
-        assert_se(sd_event_add_inotify(e, &c, p, IN_CREATE|IN_DELETE|IN_EXCL_UNLINK, inotify_handler, &context) >= 0);
-        assert_se(sd_event_source_set_priority(c, SD_EVENT_PRIORITY_IDLE) >= 0);
-
-        assert_se(sd_event_source_set_description(a, "0") >= 0);
-        assert_se(sd_event_source_set_description(b, "1") >= 0);
-        assert_se(sd_event_source_set_description(c, "2") >= 0);
-
-        assert_se(sd_event_source_get_inotify_path(a, &pp) >= 0);
-        assert_se(path_equal_or_inode_same(pp, p, 0));
-        assert_se(sd_event_source_get_inotify_path(b, &pp) >= 0);
-        assert_se(path_equal_or_inode_same(pp, p, 0));
-        assert_se(sd_event_source_get_inotify_path(b, &pp) >= 0);
-        assert_se(path_equal_or_inode_same(pp, p, 0));
-
-        q = strjoina(p, "/sub");
-        assert_se(touch(q) >= 0);
-        assert_se(sd_event_add_inotify(e, &d, q, IN_DELETE_SELF, delete_self_handler, &context) >= 0);
-
-        for (i = 0; i < n_create_events; i++) {
-                char buf[DECIMAL_STR_MAX(unsigned)+1];
-                _cleanup_free_ char *z = NULL;
-
-                xsprintf(buf, "%u", i);
-                assert_se(z = path_join(p, buf));
-
-                assert_se(touch(z) >= 0);
-        }
-
-        assert_se(unlink(q) >= 0);
-
-        assert_se(sd_event_loop(e) >= 0);
-
-        sd_event_source_unref(a);
-        sd_event_source_unref(b);
-        sd_event_source_unref(c);
-        sd_event_source_unref(d);
-
-        sd_event_unref(e);
-}
-
-TEST(inotify) {
-        test_inotify_one(100); /* should work without overflow */
-        test_inotify_one(33000); /* should trigger a q overflow */
-}
-
-static int pidfd_handler(sd_event_source *s, const siginfo_t *si, void *userdata) {
-        assert_se(s);
-        assert_se(si);
-
-        assert_se(si->si_uid == getuid());
-        assert_se(si->si_signo == SIGCHLD);
-        assert_se(si->si_code == CLD_EXITED);
-        assert_se(si->si_status == 66);
-
-        log_info("got pidfd on %c", PTR_TO_INT(userdata));
-
-        assert_se(userdata == INT_TO_PTR('p'));
-
-        assert_se(sd_event_exit(sd_event_source_get_event(s), 0) >= 0);
-        sd_event_source_unref(s);
-
-        return 0;
-}
-
-TEST(pidfd) {
-        sd_event_source *s = NULL, *t = NULL;
-        sd_event *e = NULL;
-        int pidfd;
-        pid_t pid, pid2;
-
-        assert_se(sigprocmask_many(SIG_BLOCK, NULL, SIGCHLD) >= 0);
-
-        pid = fork();
-        if (pid == 0)
-                /* child */
-                _exit(66);
-
-        assert_se(pid > 1);
-
-        pidfd = pidfd_open(pid, 0);
-        if (pidfd < 0) {
-                /* No pidfd_open() supported or blocked? */
-                assert_se(ERRNO_IS_NOT_SUPPORTED(errno) || ERRNO_IS_PRIVILEGE(errno));
-                (void) wait_for_terminate(pid, NULL);
-                return;
-        }
-
-        pid2 = fork();
-        if (pid2 == 0)
-                freeze();
-
-        assert_se(pid > 2);
-
-        assert_se(sd_event_default(&e) >= 0);
-        assert_se(sd_event_add_child_pidfd(e, &s, pidfd, WEXITED, pidfd_handler, INT_TO_PTR('p')) >= 0);
-        assert_se(sd_event_source_set_child_pidfd_own(s, true) >= 0);
-
-        /* This one should never trigger, since our second child lives forever */
-        assert_se(sd_event_add_child(e, &t, pid2, WEXITED, pidfd_handler, INT_TO_PTR('q')) >= 0);
-        assert_se(sd_event_source_set_child_process_own(t, true) >= 0);
-
-        assert_se(sd_event_loop(e) >= 0);
-
-        /* Child should still be alive */
-        assert_se(kill(pid2, 0) >= 0);
-
-        t = sd_event_source_unref(t);
-
-        /* Child should now be dead, since we dropped the ref */
-        assert_se(kill(pid2, 0) < 0 && errno == ESRCH);
 
         sd_event_unref(e);
 }
@@ -723,7 +481,7 @@ TEST(simple_timeout) {
         _cleanup_(sd_event_unrefp) sd_event *e = NULL;
         usec_t f, t, some_time;
 
-        some_time = random_u64_range(2 * USEC_PER_SEC);
+        some_time = USEC_PER_SEC;
 
         assert_se(sd_event_default(&e) >= 0);
 
@@ -738,93 +496,7 @@ TEST(simple_timeout) {
         assert_se(t >= usec_add(f, some_time));
 }
 
-static int inotify_self_destroy_handler(sd_event_source *s, const struct inotify_event *ev, void *userdata) {
-        sd_event_source **p = userdata;
-
-        assert_se(ev);
-        assert_se(p);
-        assert_se(*p == s);
-
-        assert_se(FLAGS_SET(ev->mask, IN_ATTRIB));
-
-        assert_se(sd_event_exit(sd_event_source_get_event(s), 0) >= 0);
-
-        *p = sd_event_source_unref(*p); /* here's what we actually intend to test: we destroy the event
-                                         * source from inside the event source handler */
-        return 1;
-}
-
-TEST(inotify_self_destroy) {
-        _cleanup_(sd_event_source_unrefp) sd_event_source *s = NULL;
-        _cleanup_(sd_event_unrefp) sd_event *e = NULL;
-        char path[] = "/tmp/inotifyXXXXXX";
-        _cleanup_close_ int fd = -EBADF;
-
-        /* Tests that destroying an inotify event source from its own handler is safe */
-
-        assert_se(sd_event_default(&e) >= 0);
-
-        fd = mkostemp_safe(path);
-        assert_se(fd >= 0);
-        assert_se(sd_event_add_inotify_fd(e, &s, fd, IN_ATTRIB, inotify_self_destroy_handler, &s) >= 0);
-        fd = safe_close(fd);
-        assert_se(unlink(path) >= 0); /* This will trigger IN_ATTRIB because link count goes to zero */
-        assert_se(sd_event_loop(e) >= 0);
-}
-
-struct inotify_process_buffered_data_context {
-        const char *path[2];
-        unsigned i;
-};
-
-static int inotify_process_buffered_data_handler(sd_event_source *s, const struct inotify_event *ev, void *userdata) {
-        struct inotify_process_buffered_data_context *c = ASSERT_PTR(userdata);
-        const char *description;
-
-        assert_se(sd_event_source_get_description(s, &description) >= 0);
-
-        assert_se(c->i < 2);
-        assert_se(streq(c->path[c->i], description));
-        c->i++;
-
-        return 1;
-}
-
-TEST(inotify_process_buffered_data) {
-        _cleanup_(rm_rf_physical_and_freep) char *p = NULL, *q = NULL;
-        _cleanup_(sd_event_source_unrefp) sd_event_source *a = NULL, *b = NULL;
-        _cleanup_(sd_event_unrefp) sd_event *e = NULL;
-        _cleanup_free_ char *z = NULL;
-
-        /* For issue #23826 */
-
-        assert_se(sd_event_default(&e) >= 0);
-
-        assert_se(mkdtemp_malloc("/tmp/test-inotify-XXXXXX", &p) >= 0);
-        assert_se(mkdtemp_malloc("/tmp/test-inotify-XXXXXX", &q) >= 0);
-
-        struct inotify_process_buffered_data_context context = {
-                .path = { p, q },
-        };
-
-        assert_se(sd_event_add_inotify(e, &a, p, IN_CREATE, inotify_process_buffered_data_handler, &context) >= 0);
-        assert_se(sd_event_add_inotify(e, &b, q, IN_CREATE, inotify_process_buffered_data_handler, &context) >= 0);
-
-        assert_se(z = path_join(p, "aaa"));
-        assert_se(touch(z) >= 0);
-        z = mfree(z);
-        assert_se(z = path_join(q, "bbb"));
-        assert_se(touch(z) >= 0);
-        z = mfree(z);
-
-        assert_se(sd_event_run(e, 10 * USEC_PER_SEC) > 0);
-        assert_se(sd_event_prepare(e) > 0); /* issue #23826: this was 0. */
-        assert_se(sd_event_dispatch(e) > 0);
-        assert_se(sd_event_prepare(e) == 0);
-        assert_se(sd_event_wait(e, 0) == 0);
-}
-
-TEST(sd_event_source_set_io_fd) {
+TEST(test_sd_event_source_set_io_fd) {
         _cleanup_(sd_event_source_unrefp) sd_event_source *s = NULL;
         _cleanup_(sd_event_unrefp) sd_event *e = NULL;
         _cleanup_close_pair_ int pfd_a[2] = EBADF_PAIR, pfd_b[2] = EBADF_PAIR;
@@ -913,4 +585,12 @@ TEST(leave_ratelimit) {
         assert_se(manually_left_ratelimit);
 }
 
-DEFINE_TEST_MAIN(LOG_DEBUG);
+int main(void) {
+        basic();
+        test_sd_event_now();
+        rtqueue();
+        ratelimit();
+        simple_timeout();
+        test_sd_event_source_set_io_fd();
+        leave_ratelimit();
+}

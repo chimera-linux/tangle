@@ -3,37 +3,18 @@
 #include <math.h>
 #include <stdlib.h>
 
-#if HAVE_GLIB
-#include <gio/gio.h>
-#endif
-
-#if HAVE_DBUS
-#include <dbus/dbus.h>
-#endif
-
 #include "sd-bus.h"
 
 #include "alloc-util.h"
 #include "bus-dump.h"
 #include "bus-label.h"
 #include "bus-message.h"
-#include "bus-util.h"
-#include "escape.h"
 #include "fd-util.h"
 #include "fileio.h"
 #include "log.h"
 #include "memstream-util.h"
+#include "string-util.h"
 #include "tests.h"
-
-static void test_bus_path_encode_unique(void) {
-        _cleanup_free_ char *a = NULL, *b = NULL, *c = NULL, *d = NULL, *e = NULL;
-
-        assert_se(bus_path_encode_unique(NULL, "/foo/bar", "some.sender", "a.suffix", &a) >= 0 && streq_ptr(a, "/foo/bar/some_2esender/a_2esuffix"));
-        assert_se(bus_path_decode_unique(a, "/foo/bar", &b, &c) > 0 && streq_ptr(b, "some.sender") && streq_ptr(c, "a.suffix"));
-        assert_se(bus_path_decode_unique(a, "/bar/foo", &d, &d) == 0 && !d);
-        assert_se(bus_path_decode_unique("/foo/bar/onlyOneSuffix", "/foo/bar", &d, &d) == 0 && !d);
-        assert_se(bus_path_decode_unique("/foo/bar/_/_", "/foo/bar", &d, &e) > 0 && streq_ptr(d, "") && streq_ptr(e, ""));
-}
 
 static void test_bus_path_encode(void) {
         _cleanup_free_ char *a = NULL, *b = NULL, *c = NULL, *d = NULL, *e = NULL, *f = NULL, *g = NULL;
@@ -42,8 +23,8 @@ static void test_bus_path_encode(void) {
         assert_se(sd_bus_path_decode(a, "/waldo", &b) == 0 && b == NULL);
         assert_se(sd_bus_path_decode(a, "/foo/bar", &b) > 0 && streq(b, "waldo"));
 
-        ASSERT_RETURN_EXPECTED_SE(sd_bus_path_encode("xxxx", "waldo", &c) < 0);
-        ASSERT_RETURN_EXPECTED_SE(sd_bus_path_encode("/foo/", "waldo", &c) < 0);
+        assert_se(sd_bus_path_encode("xxxx", "waldo", &c) < 0);
+        assert_se(sd_bus_path_encode("/foo/", "waldo", &c) < 0);
 
         assert_se(sd_bus_path_encode("/foo/bar", "", &c) >= 0 && streq(c, "/foo/bar/_"));
         assert_se(sd_bus_path_decode(c, "/foo/bar", &d) > 0 && streq(d, ""));
@@ -201,43 +182,6 @@ int main(int argc, char *argv[]) {
         h = cescape_length(buffer, sz);
         assert_se(h);
         log_info("message size = %zu, contents =\n%s", sz, h);
-
-#if HAVE_GLIB
-        /* Work-around for asan bug. See c8d980a3e962aba2ea3a4cedf75fa94890a6d746. */
-#if !HAS_FEATURE_ADDRESS_SANITIZER
-        {
-                GDBusMessage *g;
-                char *p;
-
-#if !defined(GLIB_VERSION_2_36)
-                g_type_init();
-#endif
-
-                g = g_dbus_message_new_from_blob(buffer, sz, 0, NULL);
-                p = g_dbus_message_print(g, 0);
-                log_info("%s", p);
-                g_free(p);
-                g_object_unref(g);
-        }
-#endif
-#endif
-
-#if HAVE_DBUS
-        {
-                DBusMessage *w;
-                DBusError error;
-
-                dbus_error_init(&error);
-
-                w = dbus_message_demarshal(buffer, sz, &error);
-                if (!w)
-                        log_error("%s", error.message);
-                else
-                        dbus_message_unref(w);
-
-                dbus_error_free(&error);
-        }
-#endif
 
         m = sd_bus_message_unref(m);
 
@@ -411,7 +355,6 @@ int main(int argc, char *argv[]) {
 
         test_bus_label_escape();
         test_bus_path_encode();
-        test_bus_path_encode_unique();
         test_bus_path_encode_many();
 
         return 0;

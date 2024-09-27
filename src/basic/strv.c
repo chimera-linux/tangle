@@ -627,6 +627,15 @@ char** strv_reverse(char **l) {
         return l;
 }
 
+static int str_compare(const void *a, const void *b) {
+        return strcmp(*((const char **)a), *((const char **)b));
+}
+
+char **strv_sort(char **l) {
+        qsort(l, strv_length(l), sizeof(char *), str_compare);
+        return l;
+}
+
 bool strv_fnmatch_full(
                 char* const* patterns,
                 const char *s,
