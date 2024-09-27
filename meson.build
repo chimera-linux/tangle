@@ -262,6 +262,7 @@ libm = cc.find_library('m')
 gperf = find_program('gperf')
 awk = find_program('awk')
 sh = find_program('sh')
+echo = find_program('echo')
 
 gperf_test_format = '''
 #include <string.h>
@@ -316,6 +317,7 @@ lib_includes = [basic_includes, include_directories(
 
 includes = [lib_includes]
 
+subdir('man')
 subdir('src/fundamental')
 subdir('src/basic')
 subdir('src/lib')

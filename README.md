@@ -15,5 +15,5 @@ those that deal with systemd itself, such as unit/slice/etc creds.
 
 ## TODO
 
-* manpages
+* clean up manpages
 * tests

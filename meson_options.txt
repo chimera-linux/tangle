@@ -6,3 +6,6 @@ option('debug-extra', type : 'array', choices : ['hashmap', 'siphash'], value : 
 
 option('pkgconfiglibdir', type : 'string', value : '',
        description : 'directory for standard pkg-config files')
+
+option('man', type : 'feature', value : 'auto',
+       description : 'build and install man pages')
