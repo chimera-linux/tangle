@@ -14,3 +14,6 @@ bool isatty_safe(int fd);
 
 int get_ctty_devnr(pid_t pid, dev_t *d);
 int get_ctty(pid_t, dev_t *_devnr, char **r);
+
+int fd_columns(int fd);
+unsigned columns(void);

@@ -33,6 +33,8 @@
 #include "string-util.h"
 #include "terminal-util.h"
 
+static volatile unsigned cached_columns = 0;
+
 bool isatty_safe(int fd) {
         assert(fd >= 0);
 
@@ -128,4 +130,40 @@ int get_ctty(pid_t pid, dev_t *ret_devnr, char **ret) {
         if (ret_devnr)
                 *ret_devnr = devnr;
         return 0;
+}
+
+int fd_columns(int fd) {
+        struct winsize ws = {};
+
+        if (fd < 0)
+                return -EBADF;
+
+        if (ioctl(fd, TIOCGWINSZ, &ws) < 0)
+                return -errno;
+
+        if (ws.ws_col <= 0)
+                return -EIO;
+
+        return ws.ws_col;
+}
+
+unsigned columns(void) {
+        const char *e;
+        long c;
+
+        if (cached_columns > 0)
+                return cached_columns;
+
+        c = 0;
+        e = getenv("COLUMNS");
+        if (e) c = strtol(e, NULL, 10);
+
+        if (c <= 0 || c > USHRT_MAX) {
+                c = fd_columns(STDOUT_FILENO);
+                if (c <= 0)
+                        c = 80;
+        }
+
+        cached_columns = c;
+        return cached_columns;
 }

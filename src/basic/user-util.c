@@ -245,7 +245,7 @@ static int getpwuid_malloc(uid_t uid, struct passwd **ret) {
 }
 
 
-static char* uid_to_name(uid_t uid) {
+char* uid_to_name(uid_t uid) {
         char *ret;
         int r;
 

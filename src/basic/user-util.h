@@ -15,6 +15,8 @@ static inline bool gid_is_valid(gid_t gid) {
         return uid_is_valid((uid_t) gid);
 }
 
+char* uid_to_name(uid_t uid);
+
 char* getusername_malloc(void);
 
 #define UID_INVALID ((uid_t) -1)

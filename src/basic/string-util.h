@@ -88,6 +88,12 @@ static inline bool char_is_cc(char p) {
 }
 bool string_has_cc(const char *p, const char *ok) _pure_;
 
+char *ellipsize_mem(const char *s, size_t old_length_bytes, size_t new_length_columns, unsigned percent);
+static inline char *ellipsize(const char *s, size_t length, unsigned percent) {
+        return ellipsize_mem(s, strlen(s), length, percent);
+}
+
+char* cescape(const char *s);
 char *cellescape(char *buf, size_t len, const char *s);
 
 int free_and_strdup(char **p, const char *s);
@@ -143,3 +149,20 @@ static inline char* str_realloc(char *p) {
 
         return realloc(p, strlen(p) + 1) ?: p;
 }
+
+/* This macro's return pointer will have the "const" qualifier set or unset the same way as the input
+ * pointer. */
+#define empty_to_null(p)                                \
+        ({                                              \
+                const char *_p = (p);                   \
+                (typeof(p)) (isempty(_p) ? NULL : _p);  \
+        })
+
+static inline const char *empty_to_dash(const char *str) {
+        return isempty(str) ? "-" : str;
+}
+
+char *delete_trailing_chars(char *s, const char *bad);
+
+int string_truncate_lines(const char *s, size_t n_lines, char **ret);
+int string_extract_line(const char *s, size_t i, char **ret);

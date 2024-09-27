@@ -80,6 +80,33 @@ static int cescape_char(char c, char *buf) {
         return buf - buf_old;
 }
 
+static char* cescape_length(const char *s, size_t n) {
+        const char *f;
+        char *r, *t;
+
+        assert(s || n == 0);
+
+        /* Does C style string escaping. May be reversed with
+         * cunescape(). */
+
+        r = new(char, n*4 + 1);
+        if (!r)
+                return NULL;
+
+        for (f = s, t = r; f < s + n; f++)
+                t += cescape_char(*f, t);
+
+        *t = 0;
+
+        return r;
+}
+
+char* cescape(const char *s) {
+        assert(s);
+
+        return cescape_length(s, strlen(s));
+}
+
 char *cellescape(char *buf, size_t len, const char *s) {
         /* Escape and ellipsize s into buffer buf of size len. Only non-control ASCII
          * characters are copied as they are, everything else is escaped. The result
@@ -351,6 +378,48 @@ bool string_has_cc(const char *p, const char *ok) {
         return false;
 }
 
+char *ellipsize_mem(const char *s, size_t old_length, size_t new_length, unsigned percent) {
+        size_t x, suffix_len;
+        char *t;
+
+        assert(s);
+        assert(percent <= 100);
+        assert(new_length != SIZE_MAX);
+
+        if (old_length <= new_length)
+                return strndup(s, old_length);
+
+        /* Special case short ellipsations */
+        switch (new_length) {
+
+        case 0:
+                return strdup("");
+
+        case 1:
+                return strdup(".");
+
+        case 2:
+                return strdup("..");
+
+        default:
+                break;
+        }
+
+        t = new(char, new_length+3);
+        if (!t)
+                return NULL;
+
+        x = ((new_length - 3) * percent + 50) / 100;
+        assert(x <= new_length - 3);
+
+        memcpy(mempcpy(t, s, x), "...", 3);
+        suffix_len = new_length - x - 3;
+        memcpy(t + x + 3, s + old_length - suffix_len, suffix_len);
+        *(t + x + 3 + suffix_len) = '\0';
+
+        return t;
+}
+
 char *strextend_with_separator_internal(char **x, const char *separator, ...) {
         size_t f, l, l_separator;
         bool need_separator;
@@ -419,4 +488,121 @@ char *strextend_with_separator_internal(char **x, const char *separator, ...) {
         *p = 0;
 
         return p;
+}
+
+char *delete_trailing_chars(char *s, const char *bad) {
+        char *c = s;
+
+        /* Drops all specified bad characters, at the end of the string */
+
+        if (!s)
+                return NULL;
+
+        if (!bad)
+                bad = WHITESPACE;
+
+        for (char *p = s; *p; p++)
+                if (!strchr(bad, *p))
+                        c = p + 1;
+
+        *c = 0;
+
+        return s;
+}
+
+int string_truncate_lines(const char *s, size_t n_lines, char **ret) {
+        const char *p = s, *e = s;
+        bool truncation_applied = false;
+        char *copy;
+        size_t n = 0;
+
+        assert(s);
+
+        /* Truncate after the specified number of lines. Returns > 0 if a truncation was applied or == 0 if
+         * there were fewer lines in the string anyway. Trailing newlines on input are ignored, and not
+         * generated either. */
+
+        for (;;) {
+                size_t k;
+
+                k = strcspn(p, "\n");
+
+                if (p[k] == 0) {
+                        if (k == 0) /* final empty line */
+                                break;
+
+                        if (n >= n_lines) /* above threshold */
+                                break;
+
+                        e = p + k; /* last line to include */
+                        break;
+                }
+
+                assert(p[k] == '\n');
+
+                if (n >= n_lines)
+                        break;
+
+                if (k > 0)
+                        e = p + k;
+
+                p += k + 1;
+                n++;
+        }
+
+        /* e points after the last character we want to keep */
+        if (isempty(e))
+                copy = strdup(s);
+        else {
+                if (!in_charset(e, "\n")) /* We only consider things truncated if we remove something that
+                                           * isn't a new-line or a series of them */
+                        truncation_applied = true;
+
+                copy = strndup(s, e - s);
+        }
+        if (!copy)
+                return -ENOMEM;
+
+        *ret = copy;
+        return truncation_applied;
+}
+
+int string_extract_line(const char *s, size_t i, char **ret) {
+        const char *p = s;
+        size_t c = 0;
+
+        /* Extract the i'nth line from the specified string. Returns > 0 if there are more lines after that,
+         * and == 0 if we are looking at the last line or already beyond the last line. As special
+         * optimization, if the first line is requested and the string only consists of one line we return
+         * NULL, indicating the input string should be used as is, and avoid a memory allocation for a very
+         * common case. */
+
+        for (;;) {
+                const char *q;
+
+                q = strchr(p, '\n');
+                if (i == c) {
+                        /* The line we are looking for! */
+
+                        if (q) {
+                                char *m;
+
+                                m = strndup(p, q - p);
+                                if (!m)
+                                        return -ENOMEM;
+
+                                *ret = m;
+                                return !isempty(q + 1); /* More coming? */
+                        } else
+                                /* Tell the caller to use the input string if equal */
+                                return strdup_to(ret, p != s ? p : NULL);
+                }
+
+                if (!q)
+                        /* No more lines, return empty line */
+                        return strdup_to(ret, "");
+
+                p = q + 1;
+                c++;
+        }
 }

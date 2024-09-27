@@ -51,7 +51,7 @@ static size_t utf8_encoded_expected_len(uint8_t c) {
 }
 
 /* decode one unicode char */
-static int utf8_encoded_to_unichar(const char *str, char32_t *ret_unichar) {
+int utf8_encoded_to_unichar(const char *str, char32_t *ret_unichar) {
         char32_t unichar;
         size_t len;
 
@@ -141,6 +141,39 @@ char *utf8_escape_invalid(const char *str) {
 
         *s = '\0';
         return str_realloc(p);
+}
+
+static int utf8_char_console_width(const char *str) {
+        char32_t c;
+        int r;
+
+        r = utf8_encoded_to_unichar(str, &c);
+        if (r < 0)
+                return r;
+
+        /* TODO: we should detect combining characters */
+
+        return unichar_iswide(c) ? 2 : 1;
+}
+
+size_t utf8_console_width(const char *str) {
+        size_t n = 0;
+
+        /* Returns the approximate width a string will take on screen when printed on a character cell
+         * terminal/console. */
+
+        while (*str) {
+                int w;
+
+                w = utf8_char_console_width(str);
+                if (w < 0)
+                        return SIZE_MAX;
+
+                n += w;
+                str = utf8_next_char(str);
+        }
+
+        return n;
 }
 
 /* expected size used to encode one unicode char */

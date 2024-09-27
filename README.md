@@ -17,4 +17,3 @@ those that deal with systemd itself, such as unit/slice/etc creds.
 
 * manpages
 * tests
-* busctl

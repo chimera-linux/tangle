@@ -23,6 +23,7 @@ endif
 conf = configuration_data()
 conf.set_quoted('PROJECT_URL', 'https://chimera-linux.org')
 conf.set('PROJECT_VERSION', project_major_version)
+conf.set_quoted('PROJECT_VERSION_FULL', meson.project_version())
 
 prefixdir = get_option('prefix')
 if not prefixdir.startswith('/')
@@ -309,6 +310,7 @@ basic_includes = include_directories(
         '.')
 
 lib_includes = [basic_includes, include_directories(
+        'src/lib/sd-bus',
         'src/lib/sd-event',
         'src/lib/sd-id128')]
 
@@ -317,7 +319,7 @@ includes = [lib_includes]
 subdir('src/fundamental')
 subdir('src/basic')
 subdir('src/lib')
-#subdir('src/busctl')
+subdir('src/busctl')
 
 install_headers(
         'src/include/_sd-common.h',

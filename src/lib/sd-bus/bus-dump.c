@@ -1,7 +1,6 @@
 /* SPDX-License-Identifier: LGPL-2.1-or-later */
 
 #include <sys/time.h>
-#include <err.h>
 
 #include "alloc-util.h"
 #include "bus-dump.h"
@@ -122,10 +121,8 @@ _public_ int sd_bus_message_dump(sd_bus_message *m, FILE *f, uint64_t flags) {
                 _cleanup_free_ char *prefix = NULL;
 
                 prefix = indent(0, flags);
-                if (!prefix) {
-                        warn("out of memory");
-                        return -ENOMEM;
-                }
+                if (!prefix)
+                        return log_oom();
 
                 fprintf(f, "%sMESSAGE \"%s\" {\n", prefix, strempty(m->root_container.signature));
         }
@@ -162,20 +159,16 @@ _public_ int sd_bus_message_dump(sd_bus_message *m, FILE *f, uint64_t flags) {
                         level--;
 
                         prefix = indent(level, flags);
-                        if (!prefix) {
-                                warn("out of memory");
-                                return -ENOMEM;
-                        }
+                        if (!prefix)
+                                return log_oom();
 
                         fprintf(f, "%s};\n", prefix);
                         continue;
                 }
 
                 prefix = indent(level, flags);
-                if (!prefix) {
-                        warn("out of memory");
-                        return -ENOMEM;
-                }
+                if (!prefix)
+                        return log_oom();
 
                 if (bus_type_is_container(type) > 0) {
                         r = sd_bus_message_enter_container(m, type, contents);
@@ -265,10 +258,8 @@ _public_ int sd_bus_message_dump(sd_bus_message *m, FILE *f, uint64_t flags) {
                 _cleanup_free_ char *prefix = NULL;
 
                 prefix = indent(0, flags);
-                if (!prefix) {
-                        warn("out of memory");
-                        return -ENOMEM;
-                }
+                if (!prefix)
+                        return log_oom();
 
                 fprintf(f, "%s};\n\n", prefix);
         }
