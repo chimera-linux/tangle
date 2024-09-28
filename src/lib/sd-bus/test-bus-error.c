@@ -234,7 +234,10 @@ TEST(test_sd_bus_error_set_errnof) {
         errno = EACCES;
         assert_se(asprintf(&str, "%m") >= 0);
         assert_se(streq(error.message, str));
-        // FIXME assert_se(error._need_free == 0);
+#ifdef __GLIBC__
+        /* this depends on the behavior of strerror_r */
+        assert_se(error._need_free == 0);
+#endif
 
         str = mfree(str);
         sd_bus_error_free(&error);
