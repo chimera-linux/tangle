@@ -7,7 +7,7 @@
 
   <refentryinfo>
     <title>sd_event_source_get_event</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -23,7 +23,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-event.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-event.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>sd_event* <function>sd_event_source_get_event</function></funcdef>
@@ -54,7 +54,7 @@
     <constant>NULL</constant>.</para>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>

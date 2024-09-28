@@ -7,7 +7,7 @@
 
   <refentryinfo>
     <title>sd_event_wait</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -34,7 +34,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-event.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-event.h&gt;</funcsynopsisinfo>
 
       <funcsynopsisinfo><token>enum</token> {
         <constant>SD_EVENT_INITIAL</constant>,
@@ -147,7 +147,7 @@
         event loop into the <constant>SD_EVENT_ARMED</constant> or
         <constant>SD_EVENT_PENDING</constant> states.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -163,7 +163,7 @@
         immediately followed by <constant>SD_EVENT_ARMED</constant> or
         <constant>SD_EVENT_PENDING</constant>.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -176,7 +176,7 @@
         <constant>SD_EVENT_PENDING</constant> or back into
         <constant>SD_EVENT_INITIAL</constant>.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -190,7 +190,7 @@
         <constant>SD_EVENT_INITIAL</constant>, or
         <constant>SD_EVENT_FINISHED</constant>.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -206,7 +206,7 @@
         event sources the <constant>SD_EVENT_EXITING</constant> state
         is seen instead.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -219,7 +219,7 @@
         <constant>SD_EVENT_FINISHED</constant> as soon as the event
         handler returns.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -229,7 +229,7 @@
         sources have run. If the event loop is in this state it serves
         no purpose anymore, and should be freed.</para>
 
-        <xi:include href="version-info.xml" xpointer="v229"/></listitem>
+        </listitem>
       </varlistentry>
 
     </variablelist>
@@ -315,7 +315,7 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -330,7 +330,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_event_new</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_event_add_io</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_event_add_time</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>

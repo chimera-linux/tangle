@@ -8,7 +8,7 @@
 
   <refentryinfo>
     <title>sd_bus_message_new_method_call</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -25,7 +25,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-bus.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-bus.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>int <function>sd_bus_message_new_method_call</function></funcdef>
@@ -142,20 +142,7 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
-
-  <refsect1>
-    <title>Examples</title>
-
-    <example>
-      <title>Make a call to a D-Bus method that takes a single parameter</title>
-
-      <programlisting><xi:include href="print-unit-path.c" parse="text" /></programlisting>
-      <para>This defines a minimally useful program that will open a connection to the bus, create a
-      message object, send it, wait for the reply, and finally extract and print the answer. It does
-      error handling and proper memory management.</para>
-    </example>
-  </refsect1>
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -167,7 +154,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-bus</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_call</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_call_method</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>

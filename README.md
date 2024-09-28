@@ -12,7 +12,3 @@ The following is provided:
 It has the same API, and is provided under the same license. It is originally
 derived from systemd 256.6. Certain APIs may be missing, however, particularly
 those that deal with systemd itself, such as unit/slice/etc creds.
-
-## TODO
-
-* clean up manpages

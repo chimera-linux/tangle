@@ -8,7 +8,7 @@
 
   <refentryinfo>
     <title>sd_event_source_set_destroy_callback</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -26,7 +26,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-event.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-event.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>typedef int (*<function>sd_event_destroy_t</function>)</funcdef>
@@ -91,7 +91,7 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -104,7 +104,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-event</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_event_add_io</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_event_add_time</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>

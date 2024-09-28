@@ -7,7 +7,7 @@
 
   <refentryinfo>
     <title>sd_bus_set_description</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -33,7 +33,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-bus.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-bus.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>int <function>sd_bus_set_description</function></funcdef>
@@ -217,7 +217,7 @@
           <listitem><para>The bus object passed to <function>sd_bus_get_scope()</function> was not a
           system or user session bus.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
@@ -229,13 +229,13 @@
           <para>The bus object passed to <function>sd_bus_get_description()</function> did
           not have a <parameter>description</parameter>.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
       </variablelist>
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -256,7 +256,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-bus</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_default_user</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_default_system</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>

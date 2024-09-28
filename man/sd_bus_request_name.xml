@@ -8,7 +8,7 @@
 
   <refentryinfo>
     <title>sd_bus_request_name</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -26,7 +26,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-bus.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-bus.h&gt;</funcsynopsisinfo>
 
       <xi:include href="sd_bus_add_match.xml" xpointer="sd_bus_message_handler_t"/>
 
@@ -80,7 +80,7 @@
         <constant>SD_BUS_NAME_ALLOW_REPLACEMENT</constant> is not set on the original request, such a request by other
         peers will be denied.</para>
 
-        <xi:include href="version-info.xml" xpointer="v209"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -90,7 +90,7 @@
         has permitted takeover by setting <constant>SD_BUS_NAME_ALLOW_REPLACEMENT</constant> while acquiring
         it.</para>
 
-        <xi:include href="version-info.xml" xpointer="v209"/></listitem>
+        </listitem>
       </varlistentry>
 
       <varlistentry>
@@ -98,7 +98,7 @@
 
         <listitem><para>Queue the acquisition of the name when the name is already taken.</para>
 
-        <xi:include href="version-info.xml" xpointer="v209"/></listitem>
+        </listitem>
       </varlistentry>
     </variablelist>
 
@@ -200,7 +200,7 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -214,7 +214,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-bus</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_new</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_slot_unref</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>

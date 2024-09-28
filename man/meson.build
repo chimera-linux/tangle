@@ -16,7 +16,7 @@ xsltproc_flags = [
         '--stringparam', 'funcsynopsis.style', 'ansi',
         '--stringparam', 'man.authors.section.enabled', '0',
         '--stringparam', 'man.copyright.section.enabled', '0',
-        '--stringparam', 'systemd.version', '@0@'.format(meson.project_version()),
+        '--stringparam', 'tangle.version', '@0@'.format(meson.project_version()),
         '--path',
         '@0@:@1@'.format(meson.current_build_dir(),
                          meson.current_source_dir())]

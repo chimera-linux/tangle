@@ -8,7 +8,7 @@
 
   <refentryinfo>
     <title>sd_bus_set_exit_on_disconnect</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -25,7 +25,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-bus.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-bus.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>int <function>sd_bus_set_exit_on_disconnect</function></funcdef>
@@ -82,7 +82,7 @@
 
           <listitem><para>A required parameter was <constant>NULL</constant>.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
@@ -90,7 +90,7 @@
 
           <listitem><para>The bus object could not be resolved.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
@@ -98,13 +98,13 @@
 
           <listitem><para>The bus connection was created in a different process, library or module instance.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
       </variablelist>
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -116,7 +116,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-bus</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_attach_event</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-event</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>

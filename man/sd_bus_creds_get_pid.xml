@@ -7,7 +7,7 @@
 
   <refentryinfo>
     <title>sd_bus_creds_get_pid</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -33,20 +33,11 @@
     <refname>sd_bus_creds_get_tid_comm</refname>
     <refname>sd_bus_creds_get_exe</refname>
     <refname>sd_bus_creds_get_cmdline</refname>
-    <refname>sd_bus_creds_get_cgroup</refname>
-    <refname>sd_bus_creds_get_unit</refname>
-    <refname>sd_bus_creds_get_slice</refname>
-    <refname>sd_bus_creds_get_user_unit</refname>
-    <refname>sd_bus_creds_get_user_slice</refname>
-    <refname>sd_bus_creds_get_session</refname>
-    <refname>sd_bus_creds_get_owner_uid</refname>
     <refname>sd_bus_creds_has_effective_cap</refname>
     <refname>sd_bus_creds_has_permitted_cap</refname>
     <refname>sd_bus_creds_has_inheritable_cap</refname>
     <refname>sd_bus_creds_has_bounding_cap</refname>
     <refname>sd_bus_creds_get_selinux_context</refname>
-    <refname>sd_bus_creds_get_audit_session_id</refname>
-    <refname>sd_bus_creds_get_audit_login_uid</refname>
     <refname>sd_bus_creds_get_tty</refname>
     <refname>sd_bus_creds_get_unique_name</refname>
     <refname>sd_bus_creds_get_well_known_names</refname>
@@ -57,7 +48,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-bus.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-bus.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>int <function>sd_bus_creds_get_pid</function></funcdef>
@@ -162,48 +153,6 @@
       </funcprototype>
 
       <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_cgroup</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>const char **<parameter>cgroup</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_unit</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>const char **<parameter>unit</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_slice</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>const char **<parameter>slice</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_user_unit</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>const char **<parameter>unit</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_user_slice</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>const char **<parameter>slice</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_session</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>const char **<parameter>slice</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_owner_uid</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>uid_t *<parameter>uid</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
         <funcdef>int <function>sd_bus_creds_has_effective_cap</function></funcdef>
         <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
         <paramdef>int <parameter>capability</parameter></paramdef>
@@ -231,18 +180,6 @@
         <funcdef>int <function>sd_bus_creds_get_selinux_context</function></funcdef>
         <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
         <paramdef>const char **<parameter>context</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_audit_session_id</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>uint32_t *<parameter>sessionid</parameter></paramdef>
-      </funcprototype>
-
-      <funcprototype>
-        <funcdef>int <function>sd_bus_creds_get_audit_login_uid</function></funcdef>
-        <paramdef>sd_bus_creds *<parameter>c</parameter></paramdef>
-        <paramdef>uid_t *<parameter>loginuid</parameter></paramdef>
       </funcprototype>
 
       <funcprototype>
@@ -350,49 +287,6 @@
     that kernel threads do not have a command line, in which case
     -ENXIO is returned.</para>
 
-    <para><function>sd_bus_creds_get_cgroup()</function> will retrieve the control group path. See <ulink
-    url="https://docs.kernel.org/admin-guide/cgroup-v2.html">Control Groups v2</ulink>.
-    </para>
-
-    <para><function>sd_bus_creds_get_unit()</function> will retrieve
-    the systemd unit name (in the system instance of systemd) that the
-    process is a part of. See
-    <citerefentry><refentrytitle>systemd.unit</refentrytitle><manvolnum>5</manvolnum></citerefentry>. For
-    processes that are not part of a unit, returns -ENXIO.
-    </para>
-
-    <para><function>sd_bus_creds_get_user_unit()</function> will
-    retrieve the systemd unit name (in the user instance of systemd)
-    that the process is a part of. See
-    <citerefentry><refentrytitle>systemd.unit</refentrytitle><manvolnum>5</manvolnum></citerefentry>. For
-    processes that are not part of a user unit, returns -ENXIO.
-    </para>
-
-    <para><function>sd_bus_creds_get_slice()</function> will retrieve
-    the systemd slice (a unit in the system instance of systemd) that
-    the process is a part of. See
-    <citerefentry><refentrytitle>systemd.slice</refentrytitle><manvolnum>5</manvolnum></citerefentry>. Similarly,
-    <function>sd_bus_creds_get_user_slice()</function> retrieves the
-    systemd slice of the process, in the user instance of systemd.
-    </para>
-
-    <para><function>sd_bus_creds_get_session()</function> will
-    retrieve the identifier of the login session that the process is
-    a part of. Please note the login session may be limited to a stub
-    process or two.  User processes may instead be started from their
-    systemd user manager, e.g. GUI applications started using DBus
-    activation, as well as service processes which are shared between
-    multiple logins of the same user. For processes that are not part
-    of a session, returns -ENXIO.</para>
-
-    <para><function>sd_bus_creds_get_owner_uid()</function> will
-    retrieve the numeric UID (user identifier) of the user who owns
-    the user unit or login session that the process is a part of. See
-    <citerefentry><refentrytitle>systemd-logind.service</refentrytitle><manvolnum>8</manvolnum></citerefentry>.
-    For processes that are not part of a user unit or session, returns
-    -ENXIO.
-    </para>
-
     <para><function>sd_bus_creds_has_effective_cap()</function> will check whether the capability specified by
     <parameter>capability</parameter> was set in the effective capabilities mask. A positive return value means that it
     was set, zero means that it was not set, and a negative return value indicates an error. See <citerefentry
@@ -415,15 +309,6 @@
 
     <para><function>sd_bus_creds_get_selinux_context()</function> will
     retrieve the SELinux security context (label) of the process.</para>
-
-    <para><function>sd_bus_creds_get_audit_session_id()</function>
-    will retrieve the audit session identifier of the process. Returns
-    -ENXIO for processes that are not part of an audit session.</para>
-
-    <para><function>sd_bus_creds_get_audit_login_uid()</function> will
-    retrieve the audit user login identifier (the identifier of the
-    user who is "responsible" for the session). Returns -ENXIO for
-    processes that are not part of an audit session.</para>
 
     <para><function>sd_bus_creds_get_tty()</function> will retrieve
     the controlling TTY, without the prefixing "/dev/". Returns -ENXIO
@@ -484,19 +369,10 @@
         <varlistentry>
           <term><constant>-ENXIO</constant></term>
 
-          <listitem><para>The given field is not specified for the described process or peer. This will be
-          returned by <function>sd_bus_creds_get_unit()</function>,
-          <function>sd_bus_creds_get_slice()</function>, <function>sd_bus_creds_get_user_unit()</function>,
-          <function>sd_bus_creds_get_user_slice()</function>, and
-          <function>sd_bus_creds_get_session()</function> if the process is not part of a systemd system
-          unit, systemd user unit, systemd slice, or logind session. It will be returned by
-          <function>sd_bus_creds_get_owner_uid()</function> if the process is not part of a systemd user unit
-          or logind session. It will also be returned by <function>sd_bus_creds_get_exe()</function> and
+          <listitem><para>It will be returned by <function>sd_bus_creds_get_exe()</function> and
           <function>sd_bus_creds_get_cmdline()</function> for kernel threads (since these are not started
-          from an executable binary, nor have a command line), and by
-          <function>sd_bus_creds_get_audit_session_id()</function> and
-          <function>sd_bus_creds_get_audit_login_uid()</function> when the process is not part of an audit
-          session, and <function>sd_bus_creds_get_tty()</function> if the process has no controlling
+          from an executable binary, nor have a command line), and
+          <function>sd_bus_creds_get_tty()</function> if the process has no controlling
           TTY.</para></listitem>
         </varlistentry>
 
@@ -515,52 +391,12 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
-
-  <refsect1>
-    <title>History</title>
-    <para><function>sd_bus_creds_get_pid()</function>,
-    <function>sd_bus_creds_get_tid()</function>,
-    <function>sd_bus_creds_get_gid()</function>,
-    <function>sd_bus_creds_get_comm()</function>,
-    <function>sd_bus_creds_get_tid_comm()</function>,
-    <function>sd_bus_creds_get_exe()</function>,
-    <function>sd_bus_creds_get_cmdline()</function>,
-    <function>sd_bus_creds_get_cgroup()</function>,
-    <function>sd_bus_creds_get_unit()</function>,
-    <function>sd_bus_creds_get_user_unit()</function>,
-    <function>sd_bus_creds_get_slice()</function>,
-    <function>sd_bus_creds_get_session()</function>,
-    <function>sd_bus_creds_get_owner_uid()</function>,
-    <function>sd_bus_creds_has_effective_cap()</function>,
-    <function>sd_bus_creds_has_permitted_cap()</function>,
-    <function>sd_bus_creds_has_inheritable_cap()</function>,
-    <function>sd_bus_creds_has_bounding_cap()</function>,
-    <function>sd_bus_creds_get_selinux_context()</function>,
-    <function>sd_bus_creds_get_audit_session_id()</function>,
-    <function>sd_bus_creds_get_audit_login_uid()</function>,
-    <function>sd_bus_creds_get_unique_name()</function>,
-    <function>sd_bus_creds_get_well_known_names()</function>,
-    <function>sd_bus_creds_get_ppid()</function>,
-    <function>sd_bus_creds_get_uid()</function>,
-    <function>sd_bus_creds_get_euid()</function>,
-    <function>sd_bus_creds_get_suid()</function>,
-    <function>sd_bus_creds_get_fsuid()</function>,
-    <function>sd_bus_creds_get_egid()</function>,
-    <function>sd_bus_creds_get_sgid()</function>,
-    <function>sd_bus_creds_get_fsgid()</function>,
-    <function>sd_bus_creds_get_supplementary_gids()</function>,
-    <function>sd_bus_creds_get_tty()</function>,
-    <function>sd_bus_creds_get_description()</function>, and
-    <function>sd_bus_creds_get_user_slice()</function> were added in version 221.</para>
-    <para><function>sd_bus_creds_get_pidfd_dup()</function> was added in version 256.</para>
-  </refsect1>
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-bus</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_creds_new_from_pid</refentrytitle><manvolnum>2</manvolnum></citerefentry></member>
       <member><citerefentry project='man-pages'><refentrytitle>fork</refentrytitle><manvolnum>2</manvolnum></citerefentry></member>

@@ -30,7 +30,7 @@
     <xsl:text>" "</xsl:text>
     <xsl:value-of select="normalize-space($section)"/>
     <xsl:text>" "" "systemd </xsl:text>
-    <xsl:value-of select="$systemd.version"/>
+    <xsl:value-of select="$tangle.version"/>
     <xsl:text>" "</xsl:text>
     <xsl:value-of select="normalize-space($extra3)"/>
     <xsl:text>"&#10;</xsl:text>

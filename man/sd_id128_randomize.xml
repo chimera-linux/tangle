@@ -7,7 +7,7 @@
 
   <refentryinfo>
     <title>sd_id128_randomize</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -48,10 +48,6 @@
     <para>For more information about the <literal>sd_id128_t</literal>
     type, see
     <citerefentry><refentrytitle>sd-id128</refentrytitle><manvolnum>3</manvolnum></citerefentry>.</para>
-
-    <para><citerefentry><refentrytitle>systemd-id128</refentrytitle><manvolnum>1</manvolnum></citerefentry>'s
-    <command>new</command> command may be used as a command line front-end for
-    <function>sd_id128_randomize()</function>.</para>
   </refsect1>
 
   <refsect1>
@@ -62,7 +58,7 @@
     errno-style error code.</para>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>
@@ -73,7 +69,6 @@
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-id128</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>machine-id</refentrytitle><manvolnum>5</manvolnum></citerefentry></member>
       <member><citerefentry project='man-pages'><refentrytitle>getrandom</refentrytitle><manvolnum>2</manvolnum></citerefentry></member>

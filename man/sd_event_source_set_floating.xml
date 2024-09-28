@@ -7,7 +7,7 @@
 
   <refentryinfo>
     <title>sd_event_source_set_floating</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -24,7 +24,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-event.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-event.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>int <function>sd_event_source_set_floating</function></funcdef>
@@ -85,7 +85,7 @@
           <listitem><para><parameter>source</parameter> is not a valid pointer to an
           <structname>sd_event_source</structname> object.</para>
 
-          <xi:include href="version-info.xml" xpointer="v244"/></listitem>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
@@ -93,7 +93,7 @@
 
           <listitem><para>The event loop has been created in a different process, library or module instance.</para>
 
-          <xi:include href="version-info.xml" xpointer="v244"/></listitem>
+          </listitem>
 
         </varlistentry>
 
@@ -101,7 +101,7 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>History</title>

@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <systemd/sd-event.h>
+#include <tangle/sd-event.h>
 
 int main(int argc, char **argv) {
   pid_t pid = fork();

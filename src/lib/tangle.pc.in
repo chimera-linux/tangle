@@ -17,4 +17,4 @@ Description: standalone systemd libraries
 URL: {{PROJECT_URL}}
 Version: {{PROJECT_VERSION}}
 Libs: -L${libdir} -ltangle
-Cflags: -I${includedir}/tangle
+Cflags: -I${includedir}

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <sys/inotify.h>
 
-#include <systemd/sd-event.h>
+#include <tangle/sd-event.h>
 
 #define _cleanup_(f) __attribute__((cleanup(f)))
 

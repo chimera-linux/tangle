@@ -8,7 +8,7 @@
 
   <refentryinfo>
     <title>sd_bus_reply_method_return</title>
-    <productname>systemd</productname>
+    <productname>tangle</productname>
   </refentryinfo>
 
   <refmeta>
@@ -25,7 +25,7 @@
 
   <refsynopsisdiv>
     <funcsynopsis>
-      <funcsynopsisinfo>#include &lt;systemd/sd-bus.h&gt;</funcsynopsisinfo>
+      <funcsynopsisinfo>#include &lt;tangle/sd-bus.h&gt;</funcsynopsisinfo>
 
       <funcprototype>
         <funcdef>int sd_bus_reply_method_return</funcdef>
@@ -79,7 +79,7 @@
 
           <para>Message <parameter>m</parameter> is not a method reply message.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/>
+          
           </listitem>
         </varlistentry>
 
@@ -89,7 +89,7 @@
           <listitem><para>Message <parameter>call</parameter> has been sealed.
           </para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
@@ -98,7 +98,7 @@
           <listitem><para>The bus to which message <parameter>call</parameter> is attached is not
           connected.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
 
         <varlistentry>
@@ -106,7 +106,7 @@
 
           <listitem><para>Memory allocation failed.</para>
 
-          <xi:include href="version-info.xml" xpointer="v246"/></listitem>
+          </listitem>
         </varlistentry>
       </variablelist>
 
@@ -116,13 +116,12 @@
     </refsect2>
   </refsect1>
 
-  <xi:include href="libsystemd-pkgconfig.xml" />
+  <xi:include href="libtangle-pkgconfig.xml" />
 
   <refsect1>
     <title>See Also</title>
 
     <para><simplelist type="inline">
-      <member><citerefentry><refentrytitle>systemd</refentrytitle><manvolnum>1</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd-bus</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
       <member><citerefentry><refentrytitle>sd_bus_message_new_method_return</refentrytitle><manvolnum>3</manvolnum></citerefentry></member>
     </simplelist></para>
