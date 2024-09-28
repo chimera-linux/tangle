@@ -313,8 +313,6 @@ static int list_bus_names(int argc, char **argv, void *userdata) {
                                         TABLE_EMPTY,
                                         TABLE_STRING, "(activatable)",
                                         TABLE_EMPTY,
-                                        TABLE_EMPTY,
-                                        TABLE_EMPTY,
                                         TABLE_EMPTY);
                         if (r < 0)
                                 return table_log_add_error(r);
