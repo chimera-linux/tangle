@@ -109,7 +109,6 @@ manpages = [
    'sd_bus_creds_get_fsgid',
    'sd_bus_creds_get_fsuid',
    'sd_bus_creds_get_gid',
-   'sd_bus_creds_get_owner_uid',
    'sd_bus_creds_get_pidfd_dup',
    'sd_bus_creds_get_ppid',
    'sd_bus_creds_get_selinux_context',
