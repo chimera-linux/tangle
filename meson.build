@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 project('tangle', 'c',
-        version : '0.1.0',
+        version : '0.1.1',
         license : 'LGPLv2+',
         default_options: [
                 'c_std=gnu11',
