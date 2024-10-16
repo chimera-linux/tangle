@@ -41,6 +41,23 @@ union sockaddr_union {
         uint8_t un_buffer[sizeof(struct sockaddr_un) + 1];
 };
 
+typedef struct SocketAddress {
+        union sockaddr_union sockaddr;
+
+        /* We store the size here explicitly due to the weird
+         * sockaddr_un semantics for abstract sockets */
+        socklen_t size;
+
+        /* Socket type, i.e. SOCK_STREAM, SOCK_DGRAM, ... */
+        int type;
+
+        /* Socket protocol, IPPROTO_xxx, usually 0, except for netlink */
+        int protocol;
+} SocketAddress;
+
+const char* socket_address_type_to_string(int t) _const_;
+int socket_address_type_from_string(const char *s) _pure_;
+
 int fd_set_sndbuf(int fd, size_t n, bool increase);
 static inline int fd_inc_sndbuf(int fd, size_t n) {
         return fd_set_sndbuf(fd, n, true);
@@ -108,3 +125,11 @@ ssize_t recvmsg_safe(int sockfd, struct msghdr *msg, int flags);
 #define UCRED_INVALID { .pid = 0, .uid = UID_INVALID, .gid = GID_INVALID }
 
 int connect_unix_path(int fd, int dir_fd, const char *path);
+
+int sockaddr_port(const struct sockaddr *_sa, unsigned *port);
+
+/* Parses AF_UNIX and AF_VSOCK addresses. AF_INET[6] require some netlink calls, so it cannot be in
+ * src/basic/ and is done from 'socket_local_address from src/shared/. Return -EPROTO in case of
+ * protocol mismatch. */
+int socket_address_parse_unix(SocketAddress *ret_address, const char *s);
+int socket_address_parse_vsock(SocketAddress *ret_address, const char *s);

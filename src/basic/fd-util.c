@@ -656,7 +656,7 @@ static inline bool stat_is_set(const struct stat *st) {
         return st && st->st_dev != 0 && st->st_mode != MODE_INVALID;
 }
 
-static bool stat_inode_same(const struct stat *a, const struct stat *b) {
+bool stat_inode_same(const struct stat *a, const struct stat *b) {
 
         /* Returns if the specified stat structure references the same (though possibly modified) inode. Does
          * a thorough check, comparing inode nr, backing device and if the inode is still of the same type. */

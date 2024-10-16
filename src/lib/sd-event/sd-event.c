@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <linux/magic.h>
 
+#include "sd-daemon.h"
 #include "sd-event.h"
 #include "sd-id128.h"
 
@@ -4407,7 +4408,7 @@ static int process_watchdog(sd_event *e) {
         if (e->watchdog_last + e->watchdog_period / 4 > e->timestamp.monotonic)
                 return 0;
 
-        //sd_notify(false, "WATCHDOG=1");
+        sd_notify(false, "WATCHDOG=1");
         e->watchdog_last = e->timestamp.monotonic;
 
         return arm_watchdog(e);
@@ -5023,7 +5024,7 @@ _public_ int sd_event_set_watchdog(sd_event *e, int b) {
                         return r;
 
                 /* Issue first ping immediately */
-                //sd_notify(false, "WATCHDOG=1");
+                sd_notify(false, "WATCHDOG=1");
                 e->watchdog_last = now(CLOCK_MONOTONIC);
 
                 e->watchdog_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK|TFD_CLOEXEC);

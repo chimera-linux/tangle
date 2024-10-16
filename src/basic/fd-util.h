@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 
 #include "macro.h"
 #include "stdio-util.h"
@@ -110,6 +111,8 @@ static inline char *format_proc_fd_path(char buf[static PROC_FD_PATH_MAX], int f
 #define FORMAT_PROC_FD_PATH(fd) \
         format_proc_fd_path((char[PROC_FD_PATH_MAX]) {}, (fd))
 
+bool stat_inode_same(const struct stat *a, const struct stat *b);
+
 int inode_same_at(int fda, const char *filea, int fdb, const char *fileb, int flags);
 static inline int inode_same(const char *filea, const char *fileb, int flags) {
         return inode_same_at(AT_FDCWD, filea, AT_FDCWD, fileb, flags);
@@ -117,3 +120,6 @@ static inline int inode_same(const char *filea, const char *fileb, int flags) {
 static inline int fd_inode_same(int fda, int fdb) {
         return inode_same_at(fda, NULL, fdb, NULL, AT_EMPTY_PATH);
 }
+
+#define laccess(path, mode)                                             \
+        RET_NERRNO(faccessat(AT_FDCWD, (path), (mode), AT_SYMLINK_NOFOLLOW))

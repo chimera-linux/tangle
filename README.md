@@ -5,6 +5,7 @@ This is a library that provides some components extracted from the
 
 The following is provided:
 
+* `sd-daemon`
 * `sd-event`
 * `sd-bus`
 * `sd-id128`

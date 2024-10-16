@@ -18,6 +18,7 @@ sources = files(
         'sd-bus/bus-track.c',
         'sd-bus/bus-type.c',
         'sd-bus/sd-bus.c',
+        'sd-daemon/sd-daemon.c',
         'sd-id128/id128-util.c',
         'sd-id128/sd-id128.c',
         'sd-event/event-util.c',

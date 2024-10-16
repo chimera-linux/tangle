@@ -32,6 +32,17 @@
 #define SO_PEERPIDFD 77
 #endif
 
+static const char* const socket_address_type_table[] = {
+        [SOCK_STREAM] =    "Stream",
+        [SOCK_DGRAM] =     "Datagram",
+        [SOCK_RAW] =       "Raw",
+        [SOCK_RDM] =       "ReliableDatagram",
+        [SOCK_SEQPACKET] = "SequentialPacket",
+        [SOCK_DCCP] =      "DatagramCongestionControl",
+};
+
+DEFINE_STRING_TABLE_LOOKUP(socket_address_type, int);
+
 int fd_set_sndbuf(int fd, size_t n, bool increase) {
         int r, value;
         socklen_t l = sizeof(value);
@@ -319,4 +330,161 @@ int sockaddr_un_set_path(struct sockaddr_un *ret, const char *path) {
                 memcpy(ret->sun_path, path, l + 1); /* copy *with* trailing NUL byte */
                 return (int) (offsetof(struct sockaddr_un, sun_path) + l + 1); /* include trailing NUL in size */
         }
+}
+
+int sockaddr_port(const struct sockaddr *_sa, unsigned *ret_port) {
+        const union sockaddr_union *sa = (const union sockaddr_union*) _sa;
+
+        /* Note, this returns the port as 'unsigned' rather than 'uint16_t', as AF_VSOCK knows larger ports */
+
+        assert(sa);
+
+        switch (sa->sa.sa_family) {
+
+        case AF_INET:
+                *ret_port = be16toh(sa->in.sin_port);
+                return 0;
+
+        case AF_INET6:
+                *ret_port = be16toh(sa->in6.sin6_port);
+                return 0;
+
+        case AF_VSOCK:
+                *ret_port = sa->vm.svm_port;
+                return 0;
+
+        default:
+                return -EAFNOSUPPORT;
+        }
+}
+
+int socket_address_parse_unix(SocketAddress *ret_address, const char *s) {
+        struct sockaddr_un un;
+        int r;
+
+        assert(ret_address);
+        assert(s);
+
+        if (!IN_SET(*s, '/', '@'))
+                return -EPROTO;
+
+        r = sockaddr_un_set_path(&un, s);
+        if (r < 0)
+                return r;
+
+        *ret_address = (SocketAddress) {
+                .sockaddr.un = un,
+                .size = r,
+        };
+
+        return 0;
+}
+
+static int vsock_parse_port(const char *s, unsigned *ret) {
+        int r;
+
+        assert(ret);
+
+        if (!s)
+                return -EINVAL;
+
+        unsigned long u;
+        char *err = NULL;
+        u = strtoul(s, &err, 10);
+        if (!err || *err)
+                return -errno;
+        if (u > UINT_MAX)
+                return -ERANGE;
+
+        /* Port 0 is apparently valid and not special in AF_VSOCK (unlike on IP). But VMADDR_PORT_ANY
+         * (UINT32_MAX) is. Hence refuse that. */
+
+        if (u == VMADDR_PORT_ANY)
+                return -EINVAL;
+
+        *ret = u;
+        return 0;
+}
+
+static int vsock_parse_cid(const char *s, unsigned *ret) {
+        assert(ret);
+
+        if (!s)
+                return -EINVAL;
+
+        /* Parsed an AF_VSOCK "CID". This is a 32bit entity, and the usual type is "unsigned". We recognize
+         * the three special CIDs as strings, and otherwise parse the numeric CIDs. */
+
+        if (streq(s, "hypervisor"))
+                *ret = VMADDR_CID_HYPERVISOR;
+        else if (streq(s, "local"))
+                *ret = VMADDR_CID_LOCAL;
+        else if (streq(s, "host"))
+                *ret = VMADDR_CID_HOST;
+        else {
+                char *err = NULL;
+                unsigned long v = strtoul(s, &err, 10);
+                if (!err || *err)
+                      return -errno;
+                if (v > UINT_MAX)
+                      return -ERANGE;
+                *ret = v;
+                return 0;
+        }
+
+        return 0;
+}
+
+int socket_address_parse_vsock(SocketAddress *ret_address, const char *s) {
+        /* AF_VSOCK socket in vsock:cid:port notation */
+        _cleanup_free_ char *n = NULL;
+        char *e, *cid_start;
+        unsigned port, cid;
+        int type, r;
+
+        assert(ret_address);
+        assert(s);
+
+        if ((cid_start = startswith(s, "vsock:")))
+                type = 0;
+        else if ((cid_start = startswith(s, "vsock-dgram:")))
+                type = SOCK_DGRAM;
+        else if ((cid_start = startswith(s, "vsock-seqpacket:")))
+                type = SOCK_SEQPACKET;
+        else if ((cid_start = startswith(s, "vsock-stream:")))
+                type = SOCK_STREAM;
+        else
+                return -EPROTO;
+
+        e = strchr(cid_start, ':');
+        if (!e)
+                return -EINVAL;
+
+        r = vsock_parse_port(e+1, &port);
+        if (r < 0)
+                return r;
+
+        n = strndup(cid_start, e - cid_start);
+        if (!n)
+                return -ENOMEM;
+
+        if (isempty(n))
+                cid = VMADDR_CID_ANY;
+        else {
+                r = vsock_parse_cid(n, &cid);
+                if (r < 0)
+                        return r;
+        }
+
+        *ret_address = (SocketAddress) {
+                .sockaddr.vm = {
+                        .svm_family = AF_VSOCK,
+                        .svm_cid = cid,
+                        .svm_port = port,
+                },
+                .type = type,
+                .size = sizeof(struct sockaddr_vm),
+        };
+
+        return 0;
 }

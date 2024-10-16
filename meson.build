@@ -332,6 +332,7 @@ install_headers(
         'src/include/sd-bus.h',
         'src/include/sd-bus-protocol.h',
         'src/include/sd-bus-vtable.h',
+        'src/include/sd-daemon.h',
         'src/include/sd-event.h',
         'src/include/sd-id128.h',
         subdir: meson.project_name(),
